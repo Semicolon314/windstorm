@@ -1,0 +1,30 @@
+{
+  "name": "windstorm",
+  "version": "0.0.0",
+  "description": "A real-time abstract strategy game.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Semicolon314/windstorm.git"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "socket.io",
+    "bootstrap",
+    "jquery",
+    "strategy",
+    "game",
+    "rts"
+  ],
+  "author": "Charles Zinn",
+  "homepage": "https://github.com/Semicolon314/windstorm",
+  "dependencies": {
+    "socket.io": "^1.0.6",
+    "express": "^4.5.1",
+    "ejs": "^1.0.0"
+  }
+}
