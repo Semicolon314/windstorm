@@ -1,5 +1,5 @@
 $(function() {
-    /* Socket.IO Variables */
+    /* Socket.IO methods */
     var socket = io();
     var pings = {};
     
@@ -8,7 +8,13 @@ $(function() {
     }
     
     socket.on("connect", function() {
-        Messager.addMessage({tags: [{type: "info", text: "Info"}], text: "Connected."});
+        // Request a name from the server
+        socket.emit("requestname", null);
+    });
+    
+    socket.on("name", function(name) {
+        Messager.addMessage({tags: [{type: "info", text: "Info"}], text: "Connected as " + name + "."});
+        Messager.setName(name);
     });
     
     socket.on("message", function(message) {
@@ -32,6 +38,7 @@ $(function() {
     var Messager = (function() {
         // Private variables
         var messageLog = [];
+        var userName = "You";
     
         function addMessage(message) {
             messageLog.push(message);
@@ -67,8 +74,12 @@ $(function() {
             } else {
                 // Send the message as a message
                 socket.emit("message", text);
-                plain("You", text);
+                plain(userName, text);
             }
+        }
+        
+        function setName(name) {
+            userName = name;
         }
         
         function createElement(message) {
@@ -102,7 +113,8 @@ $(function() {
             plain: plain,
             info: info,
             debug: debug,
-            sendMessage: sendMessage
+            sendMessage: sendMessage,
+            setName: setName
         };
     })();
     
