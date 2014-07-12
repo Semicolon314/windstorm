@@ -5,7 +5,17 @@
     margin: 0 auto;
 }
 
-.chat-holder {
+.game-holder.fullscreen {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    background-color: #FFF;
+}
+
+.message-holder {
     position: relative;
     width: 800px;
     height: 200px;
@@ -13,7 +23,7 @@
     margin: 20px auto;
 }
 
-.chat-holder input {
+.message-holder input {
     width: 100%;
     position: absolute;
     bottom: 0px;
@@ -23,18 +33,31 @@
     border-top: 1px solid #000;
 }
 
-.chat-holder > div { /* Outer chat-scroll div */
+.message-holder > div { /* Outer message-scroll div */
     width: 100%;
     position: absolute;
     top: 0px;
-    bottom: 30px;
+    bottom: 32px;
     background-color: #FFF;
     overflow: hidden;
 }
 
-.chat-holder > div > div { /* Inner chat-scroll div */
+.message-holder > div > div { /* Inner message-scroll div */
     width: 100%;
     height: 100%;
     overflow: auto;
     padding: 0px 5px;
+}
+
+.message-holder p {
+    margin: 1px;
+}
+
+.message-holder p span.message {
+    margin-left: 5px;
+}
+
+.message-holder p span.label {
+    width: 100px!important;
+    margin: 1px;
 }
