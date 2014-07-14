@@ -13,7 +13,7 @@ $(function() {
     });
     
     socket.on("name", function(name) {
-        Messager.addMessage({tags: [{type: "info", text: "Info"}], text: "Connected as " + name + "."});
+        Messager.addMessage({tags: [{type: "info", text: "Info"}], text: "Name set to " + name + "."});
         Messager.setName(name);
     });
     
@@ -68,6 +68,12 @@ $(function() {
                 var args = text.substring(1).split(" ");
                 if(args[0].toLowerCase() === "ping") {
                     ping();
+                } else if(args[0].toLowerCase() === "name") {
+                    if(args.length > 1) {
+                        socket.emit("requestname", args[1]);
+                    } else {
+                        info("Usage: /name [name]");
+                    }
                 } else {
                     info("Unknown command.");
                 }
