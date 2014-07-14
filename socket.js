@@ -1,4 +1,5 @@
 var Player = require("./player");
+var encoder = new require("node-html-encoder").Encoder("entity");
 
 module.exports = function(server) {
     var io = require("socket.io").listen(server, {log: false});
@@ -26,6 +27,7 @@ module.exports = function(server) {
         
         // Create a new player object
         var player = new Player(socket);
+        players.push(player);
         var joined = false; // Officially joined or not
         
         socket.on("requestname", function(name) {
@@ -67,6 +69,9 @@ module.exports = function(server) {
         });
         
         socket.on("message", function(text) {
+            console.log(text);
+            text = encoder.htmlEncode(text);
+            console.log(text);
             socket.broadcast.to("chat").emit("message",
                 {tags: [{text: player.name}], text: text}
             );
@@ -75,6 +80,15 @@ module.exports = function(server) {
         socket.on("ping", function(id) {
             // Relay ping
             socket.emit("ping", id);
+        });
+        
+        socket.on("disconnect", function() {
+            players.splice(players.indexOf(player), 1);
+            
+            // Announce their departure
+            socket.broadcast.to("chat").emit("message",
+                {tags: [{type: "info", text: "Info"}], text: player.name + " left the server."}
+            );
         });
     });
 };

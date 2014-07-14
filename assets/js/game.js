@@ -8,13 +8,21 @@ $(function() {
     }
     
     socket.on("connect", function() {
-        // Request a name from the server
-        socket.emit("requestname", null);
+        // Check if there's a stored name
+        if(localStorage["name"] !== null) {
+            // Request that name from the server
+            socket.emit("requestname", localStorage["name"]);
+        } else {
+            // Request a name from the server
+            socket.emit("requestname", null);
+        }
     });
     
     socket.on("name", function(name) {
         Messager.addMessage({tags: [{type: "info", text: "Info"}], text: "Name set to " + name + "."});
         Messager.setName(name);
+        
+        localStorage["name"] = name;
     });
     
     socket.on("message", function(message) {
