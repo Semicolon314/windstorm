@@ -69,9 +69,7 @@ module.exports = function(server) {
         });
         
         socket.on("message", function(text) {
-            console.log(text);
             text = encoder.htmlEncode(text);
-            console.log(text);
             socket.broadcast.to("chat").emit("message",
                 {tags: [{text: player.name}], text: text}
             );
