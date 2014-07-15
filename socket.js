@@ -21,6 +21,16 @@ module.exports = function(server) {
         return true;
     }
     
+    // Returns a player with the given name, or null
+    function playerByName(name) {
+        for(var i = 0; i < players.length; i++) {
+            if(players[i].name === name)
+                return players[i];
+        }
+        
+        return null;
+    }
+    
     /* Connection handler */
     io.sockets.on("connection", function(socket) {
         console.log("A user connected via Socket.IO.");
@@ -68,11 +78,24 @@ module.exports = function(server) {
             }
         });
         
-        socket.on("message", function(text) {
-            text = encoder.htmlEncode(text);
-            socket.broadcast.to("chat").emit("message",
-                {tags: [{text: player.name}], text: text}
-            );
+        socket.on("message", function(message) {
+            var text = encoder.htmlEncode(message.text);
+            if(message.to) {
+                var target = playerByName(message.to);
+                if(target !== null) {
+                    target.socket.emit("message",
+                        {tags: [{text: player.name}, {type: "info", text: "PM"}], text: text}
+                    );
+                } else {
+                    socket.emit("message",
+                        {tags: [{type: "info", text: "Info"}], text: "Player not found."}
+                    );
+                }
+            } else {
+                socket.broadcast.to("chat").emit("message",
+                    {tags: [{text: player.name}], text: text}
+                );
+            }
         });
         
         socket.on("ping", function(id) {

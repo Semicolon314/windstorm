@@ -82,12 +82,20 @@ $(function() {
                     } else {
                         info("Usage: /name [name]");
                     }
+                } else if(args[0].toLowerCase() === "msg") {
+                    if(args.length > 2) {
+                        args = text.substring(1).split(" ", 3);
+                        socket.emit("message", {to: args[1], text: args[2]});
+                        addMessage({tags: [{text: userName},{type: "info", text: "PM to " + args[1]}], text: args[2]});
+                    } else {
+                        info("Usage: /msg [name] [message]");
+                    }
                 } else {
                     info("Unknown command.");
                 }
             } else {
                 // Send the message as a message
-                socket.emit("message", text);
+                socket.emit("message", {text: text});
                 plain(userName, text);
             }
         }
