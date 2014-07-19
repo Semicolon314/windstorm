@@ -1,4 +1,7 @@
 $(function() {
+    /* Global variables */
+    var gameList = [];
+
     /* Socket.IO methods */
     var socket = io();
     var pings = {};
@@ -34,6 +37,35 @@ $(function() {
         delete pings[id];
         
         Messager.info("Ping: " + delta);
+    });
+    
+    socket.on("gamelist", function(list) {
+        $.each(list, function(i, data) {
+            // See if it's already in the list
+            var inGameList = -1;
+            $.each(gameList, function(j, gameData) {
+                if(data.id === gameData.id) {
+                    inGameList = j;
+                    return false;
+                }
+            });
+            
+            console.log(data.id + " is in list at " + inGameList);
+            
+            if(inGameList !== -1) {
+                if(!data.remove) {
+                    gameList[inGameList] = data;
+                } else {
+                    gameList.splice(inGameList, 1);
+                }
+            } else {
+                if(!data.remove) {
+                    gameList.push(data);
+                }
+            }
+        });
+        
+        updateGameList();
     });
     
     function ping() {
@@ -153,4 +185,68 @@ $(function() {
             }
         }
     });
+    
+    function gameListButtonClick() {
+        var id = parseInt($(this).attr("game"));
+        var spectate = $(this).attr("action") === "spectate";
+        
+        socket.emit("joingame", {id: id, spectate: spectate});
+    }
+    
+    /* UI Update methods */
+    // Makes a Join/Spectate button for the game list for the given game id
+    function makeGameListButton(id) {
+        var buttonDiv = $("<div class=\"btn-group btn-group-justified\"></div>");
+        var joinButtonGroup = $("<div class=\"btn-group\"><button type=\"button\" class=\"btn btn-default\">Join</button></div>");
+        var specButtonGroup = $("<div class=\"btn-group\"><button type=\"button\" class=\"btn btn-default\">Spectate</button></div>");
+        
+        var joinButton = joinButtonGroup.find("button");
+        var specButton = specButtonGroup.find("button");
+        
+        joinButton.attr("game", id);
+        specButton.attr("game", id);
+        
+        joinButton.attr("action", "join");
+        specButton.attr("action", "spectate");
+        
+        buttonDiv.append(joinButtonGroup);
+        buttonDiv.append(specButtonGroup);
+        
+        return buttonDiv;
+    }
+    
+    function updateGameList() {
+        var list = $("#gameList");
+        
+        // Clear the list
+        list.html("");
+        
+        // Add rows
+        $.each(gameList, function(i, game) {
+            var row = $("<tr></tr>");
+            
+            // Button column
+            var buttonCol = $("<td></td>");
+            buttonCol.append(makeGameListButton(game.id));
+            row.append(buttonCol);
+            
+            // Game name column
+            row.append("<td><p>" + game.name + "</p></td>");
+            
+            // Map column
+            row.append("<td><p>" + game.map + "</p></td>");
+            
+            // Players column
+            row.append("<td><p>" + game.players.length + "/" + game.playerCount + "</p></td>");
+            
+            // Spectators column
+            row.append("<td><p>" + game.spectators.length + "</p></td>");
+            
+            // Add the row to the table
+            list.append(row);
+        });
+        
+        // Add button listeners
+        $("#gameList button").click(gameListButtonClick);
+    }
 });

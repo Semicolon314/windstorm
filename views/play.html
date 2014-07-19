@@ -1,7 +1,21 @@
 {{ include header.html }}
 
 <div class="game-holder container">
-
+    <div class="game-view" id="gameListView">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="col-sm-3"></th> <!-- Join and leave buttons -->
+                    <th class="col-sm-3">Name</th>
+                    <th class="col-sm-2">Map</th>
+                    <th class="col-sm-1">Players</th>
+                    <th class="col-sm-1">Spectators</th>
+                </tr>
+            </thead>
+            <tbody id="gameList">
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="message-holder">
@@ -11,5 +25,5 @@
 
 
 {{ include footer.html }}
-<script src="/assets/js/game.js"></script>
+<script src="/assets/js/play.js"></script>
 {{ include final.html }}
