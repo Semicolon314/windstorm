@@ -5,8 +5,6 @@ var app = express();
 
 // Set up templating
 var ejs = require("ejs");
-ejs.open = "{{";
-ejs.close = "}}";
 app.engine(".html", ejs.__express);
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "html");
