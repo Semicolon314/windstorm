@@ -11,7 +11,7 @@ function GameLobby(io, options) {
     this.name = "Game " + this.id;
     this.playerCount = options.playerCount || 2;
     this.map = options.map || "random";
-    this.creator = options.creator || "Server";
+    this.leader = options.leader || null;
     this.started = false;
 }
 
@@ -33,7 +33,7 @@ GameLobby.prototype.serialize = function() {
         spectators: spectators,
         playerCount: this.playerCount,
         map: this.map,
-        creator: this.creator,
+        leader: this.leader === null ? null : this.leader.name,
         started: this.started
     };
 };
@@ -72,6 +72,11 @@ GameLobby.prototype.addPlayer = function(player, spec) {
         this.players.push(player);
     } else { // Add as a spectator
         this.spectators.push(player);
+    }
+    
+    // Promote to leader?
+    if(this.leader === null) {
+        this.leader = player;
     }
     
     // Make the player join the game room
@@ -113,6 +118,17 @@ GameLobby.prototype.removePlayer = function(player) {
     
     player.socket.leave("game" + this.id);
     player.gameLobby = null;
+    
+    // Promote someone new to leader?
+    if(this.leader.id === player.id) {
+        if(this.players.length > 0) {
+            this.leader = this.players[0];
+        } else if(this.spectators.length > 0) {
+            this.leader = this.spectators[0];
+        } else {
+            this.leader = null;
+        }
+    }
     
     // Send an update
     this.sendUpdate();

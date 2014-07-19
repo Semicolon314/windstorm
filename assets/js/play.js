@@ -3,6 +3,7 @@ $(function() {
     var gameList = [];
     var currentLobby = null;
     var joinType = null; // "player" or "spectator"
+    var userName = "You";
 
     /* Socket.IO methods */
     var socket = io();
@@ -100,7 +101,6 @@ $(function() {
     var Messager = (function() {
         // Private variables
         var messageLog = [];
-        var userName = "You";
     
         function addMessage(message) {
             messageLog.push(message);
@@ -193,6 +193,14 @@ $(function() {
             setName: setName
         };
     })();
+    
+    /* Utility methods */
+    // Returns whether this client is the leader
+    function isLeader() {
+        if(currentLobby === null)
+            return false;
+        return currentLobby.leader === userName;
+    }
     
     /* UI Input methods */
     $("#messageBox").keydown(function(e) {
@@ -294,7 +302,11 @@ $(function() {
         pList.html("");
         
         $.each(currentLobby.players, function(i, name) {
-            pList.append("<li class=\"list-group-item\">" + name + "</li>");
+            var listItem = $("<li class=\"list-group-item\">" + name + "</li>");
+            if(name === currentLobby.leader) {
+                listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
+            }
+            pList.append(listItem);
         });
         // Add empty slots
         for(var i = 0; i < currentLobby.playerCount - currentLobby.players.length; i++) {
@@ -305,10 +317,18 @@ $(function() {
         sList.html("");
         if(currentLobby.spectators.length > 0) {
             $.each(currentLobby.spectators, function(i, name) {
-                sList.append("<li class=\"list-group-item\">" + name + "</li>");
+                var listItem = $("<li class=\"list-group-item\">" + name + "</li>");
+                if(name === currentLobby.leader) {
+                    listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
+                }
+                sList.append(listItem);
             });
         } else {
             sList.append("<li class=\"list-group-item\">None</li>");
         }
+        
+        // Enabled/disable the start game button
+        $("#startGameButton").prop("disabled",
+            !isLeader() || currentLobby.players.length < currentLobby.playerCount);
     }
 });
