@@ -1,7 +1,18 @@
-{{ include header.html }}
+<% include header.html %>
 
 <div class="game-holder container">
     <div class="game-view" id="gameViewList">
+        <h1>Game List</h1>
+        <hr>
+        <div class="btn-group btn-group-justified">
+            <div class="btn-group">
+                <button type="button" class="btn btn-default" id="createGameButton">Create Game</button>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-default" id="joinQueueButton">Join Queue</button>
+            </div>
+        </div>
+        <hr>
         <table class="table">
             <thead>
                 <tr>
@@ -20,20 +31,66 @@
     <div class="game-view" id="gameViewLobby">
         <h1 class="text-center" id="lobbyName">Game 1</h1>
         <h3 class="text-center" id="lobbyMap">rift</h3>
+        <hr>
         <h3>Players</h3>
         <ul id="lobbyPlayerList" class="list-group">
         </ul>
+        <hr>
         <h3>Spectators</h3>
         <ul id="lobbySpectatorList" class="list-group">
         </ul>
+        <hr>
         <div class="btn-group btn-group-justified">
-            <div class="btn-group">
-                <button type="button" class="btn btn-default" id="startGameButton">Start Game</button>
-            </div>
             <div class="btn-group">
                 <button type="button" class="btn btn-danger" id="leaveLobbyButton">Leave</button>
             </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-default" id="startGameButton">Start Game</button>
+            </div>
         </div>
+        <br>
+    </div>
+    
+    <div class="game-view" id="gameViewCreate">
+        <h1>Create Game</h1>
+        <hr>
+        <form role="form">
+            <div class="form-group">
+                <label for="createGameName">Name</label>
+                <input type="text" class="form-control" id="createGameName">
+            </div>
+            <div class="form-group">
+                <label for="createGameMap">Map</label>
+                <select class="form-control" id="createGameMap">
+                    <option>random</option>
+                    <% maps.forEach(function(map) { %>
+                    <option value="<%= map %>"><%= map %></option>
+                    <% }) %>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="createGamePlayers">Number of Players</label><br>
+                <div class="btn-group" id="createGamePlayers">
+                    <button type="button" class="btn btn-default active">2</button>
+                    <button type="button" class="btn btn-default">3</button>
+                    <button type="button" class="btn btn-default">4</button>
+                    <button type="button" class="btn btn-default">5</button>
+                    <button type="button" class="btn btn-default">6</button>
+                    <button type="button" class="btn btn-default">7</button>
+                    <button type="button" class="btn btn-default">8</button>
+                </div>
+            </div>
+            
+            <hr>
+            <div class="btn-group btn-group-justified">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-danger" id="cancelCreateButton">Cancel</button>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default" id="createButton">Create</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -42,6 +99,6 @@
     <input type="text" id="messageBox">
 </div>
 
-{{ include footer.html }}
+<% include footer.html %>
 <script src="/assets/js/play.js"></script>
-{{ include final.html }}
+<% include final.html %>

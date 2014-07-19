@@ -228,6 +228,27 @@ $(function() {
         setGameView("List");
     });
     
+    $("#createGameButton").click(function() {
+        setGameView("Create");
+    });
+    
+    $("#createGamePlayers button").click(function() {
+        $("#createGamePlayers button").removeClass("active");
+        $(this).addClass("active");
+    });
+    
+    $("#cancelCreateButton").click(function() {
+        setGameView("List");
+    });
+    
+    $("#createButton").click(function() {
+        var gameName = $("#createGameName").val();
+        var gameMap = $("#createGameMap").val();
+        var playerCount = parseInt($("#createGamePlayers .active").html());
+        
+        socket.emit("creategame", {name: gameName, map: gameMap, playerCount: playerCount});
+    });
+    
     /* UI Update methods */
     // Sets the current game view
     function setGameView(view) {
@@ -285,6 +306,10 @@ $(function() {
             // Add the row to the table
             list.append(row);
         });
+        
+        if(gameList.length === 0) {
+            list.append("<tr><td colspan=\"5\" class=\"text-center\">No games available</td></tr>");
+        }
         
         // Add button listeners
         $("#gameList button").click(gameListButtonClick);

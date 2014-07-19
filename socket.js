@@ -9,20 +9,6 @@ module.exports = function(server) {
     var players = [];
     var gameList = []; // Actually game lobbies
     
-    // Add temp games for testing
-    gameList.push(new GameLobby(io, {
-        playerCount: 3,
-        map: "rift"
-    }));
-    gameList.push(new GameLobby(io, {
-        playerCount: 5,
-        map: "temple"
-    }));
-    gameList.push(new GameLobby(io, {
-        playerCount: 2,
-        map: "paths"
-    }));
-    
     /* Global methods */
     // Checks whether the given name is valid and unused
     function nameValid(name) {
@@ -58,6 +44,23 @@ module.exports = function(server) {
         return null;
     }
     
+    // Checks whether the given game name is valid and unused
+    function gameNameValid(name) {
+        if(typeof name !== "string"
+        || name.length < 3
+        || name.substring(0, 4).toLowerCase() === "game") {
+            return false;
+        }
+        
+        for(var i = 0; i < gameList.length; i++) {
+            if(gameList[i].name === name) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
     // Returns a list of all game lobbies, serialized for sending
     function serializedGames() {
         var g = [];
@@ -74,6 +77,17 @@ module.exports = function(server) {
                 gameList[i].deleteSelf();
                 gameList.splice(i, 1);
                 return;
+            }
+        }
+    }
+    
+    // Deletes all games with no players in them
+    function cleanGameList() {
+        for(var i = 0; i < gameList.length; i++) {
+            if(gameList[i].players.length === 0 && gameList[i].spectators.length === 0) {
+                gameList[i].deleteSelf();
+                gameList.splice(i, 1);
+                i--;
             }
         }
     }
@@ -165,6 +179,24 @@ module.exports = function(server) {
         socket.on("leavegame", function() {
             if(player.gameLobby !== null) {
                 player.gameLobby.removePlayer(player);
+            
+                cleanGameList();
+            }
+        });
+        
+        socket.on("creategame", function(options) {
+            if(player.gameLobby === null) { // Not already in a game
+                var filtered = {}; // Filter options for safety reasons
+                filtered.name = gameNameValid(options.name) ? options.name : null;
+                filtered.playerCount = options.playerCount
+                    && options.playerCount >= 2
+                    && options.playerCount <= 8
+                    ? options.playerCount : 2;
+                filtered.map = options.map || "random";
+                
+                var game = new GameLobby(io, filtered);
+                game.addPlayer(player);
+                gameList.push(game);
             }
         });
         
@@ -180,6 +212,8 @@ module.exports = function(server) {
                 // Remove them from their game
                 player.gameLobby.removePlayer(player);
             }
+            
+            cleanGameList();
             
             // Announce their departure
             socket.broadcast.to("chat").emit("message",

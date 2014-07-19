@@ -8,7 +8,7 @@ function GameLobby(io, options) {
     this.players = []; // Players in the lobby
     this.spectators = []; // Spectators in the lobby
     
-    this.name = "Game " + this.id;
+    this.name = options.name || ("Game " + this.id);
     this.playerCount = options.playerCount || 2;
     this.map = options.map || "random";
     this.leader = options.leader || null;
@@ -48,7 +48,7 @@ GameLobby.prototype.deleteSelf = function() {
         this.removePlayer(this.players[i]);
     }
     
-    this.io.emit("gamelist", {id: this.id, remove: true});
+    this.io.emit("gamelist", [{id: this.id, remove: true}]);
 };
 
 // Adds a player to the lobby
