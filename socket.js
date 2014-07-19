@@ -162,6 +162,12 @@ module.exports = function(server) {
             }
         });
         
+        socket.on("leavegame", function() {
+            if(player.gameLobby !== null) {
+                player.gameLobby.removePlayer(player);
+            }
+        });
+        
         socket.on("ping", function(id) {
             // Relay ping
             socket.emit("ping", id);

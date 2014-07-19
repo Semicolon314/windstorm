@@ -62,6 +62,10 @@
     margin: 1px;
 }
 
+.game-view {
+    display: none;
+}
+
 #gameList p {
     margin-top: 6px;
 }

@@ -1,6 +1,8 @@
 $(function() {
     /* Global variables */
     var gameList = [];
+    var currentLobby = null;
+    var joinType = null; // "player" or "spectator"
 
     /* Socket.IO methods */
     var socket = io();
@@ -26,6 +28,8 @@ $(function() {
         Messager.setName(name);
         
         localStorage["name"] = name;
+        
+        setGameView("List");
     });
     
     socket.on("message", function(message) {
@@ -55,6 +59,10 @@ $(function() {
             if(inGameList !== -1) {
                 if(!data.remove) {
                     gameList[inGameList] = data;
+                    if(currentLobby !== null && data.id === currentLobby.id) {
+                        currentLobby = data;
+                        updateGameLobby();
+                    }
                 } else {
                     gameList.splice(inGameList, 1);
                 }
@@ -66,6 +74,20 @@ $(function() {
         });
         
         updateGameList();
+    });
+    
+    socket.on("joingame", function(data) {
+        for(var i = 0; i < gameList.length; i++) {
+            if(gameList[i].id === data.id) {
+                currentLobby = gameList[i];
+                break;
+            }
+        }
+        
+        joinType = data.joinType;
+        
+        updateGameLobby();
+        setGameView("Lobby");
     });
     
     function ping() {
@@ -193,7 +215,19 @@ $(function() {
         socket.emit("joingame", {id: id, spectate: spectate});
     }
     
+    $("#leaveLobbyButton").click(function() {
+        socket.emit("leavegame");
+        setGameView("List");
+    });
+    
     /* UI Update methods */
+    // Sets the current game view
+    function setGameView(view) {
+        $(".game-view").hide();
+        
+        $("#gameView" + view).show();
+    }
+    
     // Makes a Join/Spectate button for the game list for the given game id
     function makeGameListButton(id) {
         var buttonDiv = $("<div class=\"btn-group btn-group-justified\"></div>");
@@ -217,8 +251,6 @@ $(function() {
     
     function updateGameList() {
         var list = $("#gameList");
-        
-        // Clear the list
         list.html("");
         
         // Add rows
@@ -248,5 +280,35 @@ $(function() {
         
         // Add button listeners
         $("#gameList button").click(gameListButtonClick);
+    }
+    
+    function updateGameLobby() {
+        if(currentLobby === null) {
+            return;
+        }
+        
+        $("#lobbyName").html(currentLobby.name);
+        $("#lobbyMap").html(currentLobby.map);
+        
+        var pList = $("#lobbyPlayerList");
+        pList.html("");
+        
+        $.each(currentLobby.players, function(i, name) {
+            pList.append("<li class=\"list-group-item\">" + name + "</li>");
+        });
+        // Add empty slots
+        for(var i = 0; i < currentLobby.playerCount - currentLobby.players.length; i++) {
+            pList.append("<li class=\"list-group-item\">&nbsp;</li>");
+        }
+        
+        var sList = $("#lobbySpectatorList");
+        sList.html("");
+        if(currentLobby.spectators.length > 0) {
+            $.each(currentLobby.spectators, function(i, name) {
+                sList.append("<li class=\"list-group-item\">" + name + "</li>");
+            });
+        } else {
+            sList.append("<li class=\"list-group-item\">None</li>");
+        }
     }
 });

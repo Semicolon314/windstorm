@@ -1,7 +1,7 @@
 {{ include header.html }}
 
 <div class="game-holder container">
-    <div class="game-view" id="gameListView">
+    <div class="game-view" id="gameViewList">
         <table class="table">
             <thead>
                 <tr>
@@ -15,6 +15,25 @@
             <tbody id="gameList">
             </tbody>
         </table>
+    </div>
+    
+    <div class="game-view" id="gameViewLobby">
+        <h1 class="text-center" id="lobbyName">Game 1</h1>
+        <h3 class="text-center" id="lobbyMap">rift</h3>
+        <h3>Players</h3>
+        <ul id="lobbyPlayerList" class="list-group">
+        </ul>
+        <h3>Spectators</h3>
+        <ul id="lobbySpectatorList" class="list-group">
+        </ul>
+        <div class="btn-group btn-group-justified">
+            <div class="btn-group">
+                <button type="button" class="btn btn-default" id="startGameButton">Start Game</button>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-danger" id="leaveLobbyButton">Leave</button>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -63,6 +63,8 @@ GameLobby.prototype.addPlayer = function(player, spec) {
         spec = true;
     }
     
+    var joinType = spec ? "spectator" : "player";
+    
     // Add listeners
     this.addListeners(player);
     
@@ -81,7 +83,13 @@ GameLobby.prototype.addPlayer = function(player, spec) {
     // Send an update
     this.sendUpdate();
     
-    return spec ? "spectator" : "player";
+    // Tell the player that they've joined
+    player.socket.emit("joingame", {
+        id: this.id,
+        joinType: joinType
+    });
+    
+    return joinType;
 };
 
 // Removes a player
@@ -102,6 +110,9 @@ GameLobby.prototype.removePlayer = function(player) {
             break;
         }
     }
+    
+    player.socket.leave("game" + this.id);
+    player.gameLobby = null;
     
     // Send an update
     this.sendUpdate();
