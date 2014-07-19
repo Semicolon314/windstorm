@@ -200,6 +200,13 @@ module.exports = function(server) {
             }
         });
         
+        // Switch between spectator and player
+        socket.on("togglejointype", function() {
+            if(player.gameLobby !== null) {
+                player.gameLobby.toggleJoinType(player);
+            }
+        });
+        
         socket.on("ping", function(id) {
             // Relay ping
             socket.emit("ping", id);

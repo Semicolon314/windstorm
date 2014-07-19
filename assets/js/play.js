@@ -249,6 +249,10 @@ $(function() {
         socket.emit("creategame", {name: gameName, map: gameMap, playerCount: playerCount});
     });
     
+    function toggleJoinType() {
+        socket.emit("togglejointype");
+    }
+    
     /* UI Update methods */
     // Sets the current game view
     function setGameView(view) {
@@ -335,7 +339,15 @@ $(function() {
         });
         // Add empty slots
         for(var i = 0; i < currentLobby.playerCount - currentLobby.players.length; i++) {
-            pList.append("<li class=\"list-group-item\">&nbsp;</li>");
+            if(i === 0 && joinType !== "player") {
+                var listItem = $("<li class=\"list-group-item\">\
+                    <button type=\"button\" class=\"btn btn-sm btn-default center-block\">\
+                    Switch to Player</a></li>");
+                listItem.click(toggleJoinType);
+                pList.append(listItem);
+            } else {
+                pList.append("<li class=\"list-group-item\">&nbsp;</li>");
+            }
         }
         
         var sList = $("#lobbySpectatorList");
@@ -348,8 +360,13 @@ $(function() {
                 }
                 sList.append(listItem);
             });
-        } else {
-            sList.append("<li class=\"list-group-item\">None</li>");
+        }
+        if(joinType !== "spectator") {
+            var listItem = $("<li class=\"list-group-item\">\
+                <button type=\"button\" class=\"btn btn-sm btn-default center-block\">\
+                Switch to Spectator</a></li>");
+            listItem.click(toggleJoinType);
+            sList.append(listItem);
         }
         
         // Enabled/disable the start game button

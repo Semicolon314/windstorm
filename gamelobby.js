@@ -134,6 +134,33 @@ GameLobby.prototype.removePlayer = function(player) {
     this.sendUpdate();
 };
 
+// Switches a player between spectator and player
+GameLobby.prototype.toggleJoinType = function(player) {
+    for(var i = 0; i < this.players.length; i++) {
+        if(this.players[i].id === player.id) {
+            this.players.splice(i, 1);
+            this.spectators.push(player);
+            this.sendUpdate();
+            player.socket.emit("joingame", {id: this.id, joinType: "spectator"});
+            return;
+        }
+    }
+    
+    if(this.players.length === this.playerCount) {
+        return;
+    }
+    
+    for(var i = 0; i < this.spectators.length; i++) {
+        if(this.spectators[i].id === player.id) {
+            this.spectators.splice(i, 1);
+            this.players.push(player);
+            this.sendUpdate();
+            player.socket.emit("joingame", {id: this.id, joinType: "player"});
+            return;
+        }
+    }
+};
+
 GameLobby.prototype.addListeners = function(player) {
     // None yet
 };
