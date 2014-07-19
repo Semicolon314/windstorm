@@ -91,6 +91,11 @@ $(function() {
         setGameView("Lobby");
     });
     
+    socket.on("leavegame", function() {
+        currentLobby = null;
+        setGameView("List");
+    });
+    
     function ping() {
         var id = Math.round(Math.random() * 1000000);
         pings[id] = millis();
@@ -223,6 +228,13 @@ $(function() {
         socket.emit("joingame", {id: id, spectate: spectate});
     }
     
+    function lobbyPlayerButtonClick() {
+        var target = $(this).parent().attr("player-target");
+        var action = $(this).attr("action");
+        
+        socket.emit("leaderaction", {target: target, action: action});
+    }
+    
     $("#leaveLobbyButton").click(function() {
         socket.emit("leavegame");
         setGameView("List");
@@ -282,6 +294,15 @@ $(function() {
         return buttonDiv;
     }
     
+    // Makes a Kick/Leader button group for the given player
+    function makeLeaderButtons(name) {
+        var buttons = $("<div class=\"btn-group btn-group-xs pull-right\" player-target=\"" + name + "\"></div>");
+            buttons.append("<button type=\"button\" class=\"btn btn-default\" action=\"kick\">Kick</button>");
+            buttons.append("<button type=\"button\" class=\"btn btn-default\" action=\"leader\">Leader</button>");
+            
+        return buttons;
+    }
+    
     function updateGameList() {
         var list = $("#gameList");
         list.html("");
@@ -334,6 +355,8 @@ $(function() {
             var listItem = $("<li class=\"list-group-item\">" + name + "</li>");
             if(name === currentLobby.leader) {
                 listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
+            } else if(isLeader()) {
+                listItem.append(makeLeaderButtons(name));
             }
             pList.append(listItem);
         });
@@ -343,7 +366,7 @@ $(function() {
                 var listItem = $("<li class=\"list-group-item\">\
                     <button type=\"button\" class=\"btn btn-sm btn-default center-block\">\
                     Switch to Player</a></li>");
-                listItem.click(toggleJoinType);
+                listItem.find("button").click(toggleJoinType);
                 pList.append(listItem);
             } else {
                 pList.append("<li class=\"list-group-item\">&nbsp;</li>");
@@ -357,6 +380,8 @@ $(function() {
                 var listItem = $("<li class=\"list-group-item\">" + name + "</li>");
                 if(name === currentLobby.leader) {
                     listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
+                } else if(isLeader()) {
+                    listItem.append(makeLeaderButtons(name));
                 }
                 sList.append(listItem);
             });
@@ -365,12 +390,15 @@ $(function() {
             var listItem = $("<li class=\"list-group-item\">\
                 <button type=\"button\" class=\"btn btn-sm btn-default center-block\">\
                 Switch to Spectator</a></li>");
-            listItem.click(toggleJoinType);
+            listItem.find("button").click(toggleJoinType);
             sList.append(listItem);
         }
         
         // Enabled/disable the start game button
         $("#startGameButton").prop("disabled",
             !isLeader() || currentLobby.players.length < currentLobby.playerCount);
+            
+        // Add listeners for player kicking and leader-ing
+        $("[player-target] button").click(lobbyPlayerButtonClick);
     }
 });

@@ -117,6 +117,7 @@ GameLobby.prototype.removePlayer = function(player) {
     }
     
     player.socket.leave("game" + this.id);
+    player.socket.emit("leavegame");
     player.gameLobby = null;
     
     // Promote someone new to leader?

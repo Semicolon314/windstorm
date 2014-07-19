@@ -207,6 +207,24 @@ module.exports = function(server) {
             }
         });
         
+        socket.on("leaderaction", function(data) {
+            if(player.gameLobby !== null && player.gameLobby.leader.name === player.name) {
+                var target = playerByName(data.target);
+                if(target !== null) {
+                    if(target.gameLobby !== null && target.gameLobby.id === player.gameLobby.id) {
+                        if(data.action === "kick") {
+                            target.gameLobby.removePlayer(target);
+                            
+                            cleanGameList();
+                        } else if(data.action === "leader") {
+                            target.gameLobby.leader = target;
+                            target.gameLobby.sendUpdate();
+                        }
+                    }
+                }
+            }
+        });
+        
         socket.on("ping", function(id) {
             // Relay ping
             socket.emit("ping", id);
@@ -218,9 +236,9 @@ module.exports = function(server) {
             if(player.gameLobby !== null) {
                 // Remove them from their game
                 player.gameLobby.removePlayer(player);
-            }
             
-            cleanGameList();
+                cleanGameList();
+            }
             
             // Announce their departure
             socket.broadcast.to("chat").emit("message",
