@@ -2,12 +2,12 @@ var moniker = require("moniker");
 var util = require("util");
 var events = require("events");
 
-var id_counter = 0;
+var idCounter = 0;
 
 function Player(socket) {
     events.EventEmitter.call(this);
 
-    this.id = ++id_counter;
+    this.id = ++idCounter;
     
     this.name = moniker.choose();
     this.socket = socket;

@@ -12,12 +12,14 @@ module.exports = function(server) {
     /* Global methods */
     // Checks whether the given name is valid and unused
     function nameValid(name) {
-        if(name.length < 3 || name.toLowerCase() === "server" || name.toLowerCase() === "you")
+        if(name.length < 3 || name.toLowerCase() === "server" || name.toLowerCase() === "you") {
             return false;
+        }
     
         for(var i = 0; i < players.length; i++) {
-            if(players[i].name === name)
+            if(players[i].name === name) {
                 return false;
+            }
         }
         
         return true;
@@ -46,9 +48,9 @@ module.exports = function(server) {
     
     // Checks whether the given game name is valid and unused
     function gameNameValid(name) {
-        if(typeof name !== "string"
-        || name.length < 3
-        || name.substring(0, 4).toLowerCase() === "game") {
+        if(typeof name !== "string" ||
+           name.length < 3 ||
+           name.substring(0, 4).toLowerCase() === "game") {
             return false;
         }
         
@@ -71,6 +73,7 @@ module.exports = function(server) {
     }
     
     // Deletes the game lobby with the given id
+    /* jshint ignore: start */
     function deleteGame(id) {
         for(var i = 0; i < gameList.length; i++) {
             if(gameList[i].id === id) {
@@ -80,6 +83,7 @@ module.exports = function(server) {
             }
         }
     }
+    /* jshint ignore: end */
     
     // Deletes all games with no players in them
     function cleanGameList() {
@@ -188,10 +192,10 @@ module.exports = function(server) {
             if(player.gameLobby === null) { // Not already in a game
                 var filtered = {}; // Filter options for safety reasons
                 filtered.name = gameNameValid(options.name) ? options.name : null;
-                filtered.playerCount = options.playerCount
-                    && options.playerCount >= 2
-                    && options.playerCount <= 8
-                    ? options.playerCount : 2;
+                filtered.playerCount = options.playerCount &&
+                    options.playerCount >= 2 &&
+                    options.playerCount <= 8 ?
+                    options.playerCount : 2;
                 filtered.map = options.map || "random";
                 
                 var game = new GameLobby(io, filtered);
