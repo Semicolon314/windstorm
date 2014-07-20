@@ -15,9 +15,9 @@ $(function() {
     
     socket.on("connect", function() {
         // Check if there's a stored name
-        if(localStorage["name"] !== null) {
+        if(localStorage.name !== null) {
             // Request that name from the server
-            socket.emit("requestname", localStorage["name"]);
+            socket.emit("requestname", localStorage.name);
         } else {
             // Request a name from the server
             socket.emit("requestname", null);
@@ -28,7 +28,7 @@ $(function() {
         Messager.addMessage({tags: [{type: "info", text: "Info"}], text: "Name set to " + name + "."});
         Messager.setName(name);
         
-        localStorage["name"] = name;
+        localStorage.name = name;
         
         setGameView("List");
     });
@@ -167,9 +167,6 @@ $(function() {
             // Create an element for the message
             var element = $("<p></p>");
             
-            // Create a tags array
-            var tags = [];
-            
             // Append tags
             $.each(message.tags, function(i, tag) {
                 var label = $("<span></span>");
@@ -202,8 +199,9 @@ $(function() {
     /* Utility methods */
     // Returns whether this client is the leader
     function isLeader() {
-        if(currentLobby === null)
+        if(currentLobby === null) {
             return false;
+        }
         return currentLobby.leader === userName;
     }
     
@@ -345,6 +343,8 @@ $(function() {
             return;
         }
         
+        var listItem;
+        
         $("#lobbyName").html(currentLobby.name);
         $("#lobbyMap").html(currentLobby.map);
         
@@ -352,7 +352,7 @@ $(function() {
         pList.html("");
         
         $.each(currentLobby.players, function(i, name) {
-            var listItem = $("<li class=\"list-group-item\">" + name + "</li>");
+            listItem = $("<li class=\"list-group-item\">" + name + "</li>");
             if(name === currentLobby.leader) {
                 listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
             } else if(isLeader()) {
@@ -363,7 +363,7 @@ $(function() {
         // Add empty slots
         for(var i = 0; i < currentLobby.playerCount - currentLobby.players.length; i++) {
             if(i === 0 && joinType !== "player") {
-                var listItem = $("<li class=\"list-group-item\">\
+                listItem = $("<li class=\"list-group-item\">\
                     <button type=\"button\" class=\"btn btn-sm btn-default center-block\">\
                     Switch to Player</a></li>");
                 listItem.find("button").click(toggleJoinType);
@@ -377,7 +377,7 @@ $(function() {
         sList.html("");
         if(currentLobby.spectators.length > 0) {
             $.each(currentLobby.spectators, function(i, name) {
-                var listItem = $("<li class=\"list-group-item\">" + name + "</li>");
+                listItem = $("<li class=\"list-group-item\">" + name + "</li>");
                 if(name === currentLobby.leader) {
                     listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
                 } else if(isLeader()) {
@@ -387,7 +387,7 @@ $(function() {
             });
         }
         if(joinType !== "spectator") {
-            var listItem = $("<li class=\"list-group-item\">\
+            listItem = $("<li class=\"list-group-item\">\
                 <button type=\"button\" class=\"btn btn-sm btn-default center-block\">\
                 Switch to Spectator</a></li>");
             listItem.find("button").click(toggleJoinType);

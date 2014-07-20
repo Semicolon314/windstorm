@@ -1,7 +1,7 @@
-var id_counter = 0;
+var idCounter = 0;
 
 function GameLobby(io, options) {
-    this.id = ++id_counter;
+    this.id = ++idCounter;
     
     this.io = io;
     
@@ -18,11 +18,12 @@ function GameLobby(io, options) {
 GameLobby.prototype.serialize = function() {
     var players = [];
     var spectators = [];
+    var i;
     
-    for(var i = 0; i < this.players.length; i++) {
+    for(i = 0; i < this.players.length; i++) {
         players.push(this.players[i].name);
     }
-    for(var i = 0; i < this.spectators.length; i++) {
+    for(i = 0; i < this.spectators.length; i++) {
         spectators.push(this.spectators[i].name);
     }
     
@@ -99,17 +100,19 @@ GameLobby.prototype.addPlayer = function(player, spec) {
 
 // Removes a player
 GameLobby.prototype.removePlayer = function(player) {
+    var i;
+    
     this.removeListeners(player);
     
     player.gameLobby = null;
     
-    for(var i = 0; i < this.players.length; i++) {
+    for(i = 0; i < this.players.length; i++) {
         if(this.players[i].id === player.id) {
             this.players.splice(i, 1);
             break;
         }
     }
-    for(var i = 0; i < this.spectators.length; i++) {
+    for(i = 0; i < this.spectators.length; i++) {
         if(this.spectators[i].id === player.id) {
             this.spectators.splice(i, 1);
             break;
@@ -137,7 +140,9 @@ GameLobby.prototype.removePlayer = function(player) {
 
 // Switches a player between spectator and player
 GameLobby.prototype.toggleJoinType = function(player) {
-    for(var i = 0; i < this.players.length; i++) {
+    var i;
+    
+    for(i = 0; i < this.players.length; i++) {
         if(this.players[i].id === player.id) {
             this.players.splice(i, 1);
             this.spectators.push(player);
@@ -151,7 +156,7 @@ GameLobby.prototype.toggleJoinType = function(player) {
         return;
     }
     
-    for(var i = 0; i < this.spectators.length; i++) {
+    for(i = 0; i < this.spectators.length; i++) {
         if(this.spectators[i].id === player.id) {
             this.spectators.splice(i, 1);
             this.players.push(player);
@@ -162,6 +167,7 @@ GameLobby.prototype.toggleJoinType = function(player) {
     }
 };
 
+/* jshint ignore: start */
 GameLobby.prototype.addListeners = function(player) {
     // None yet
 };
@@ -169,5 +175,6 @@ GameLobby.prototype.addListeners = function(player) {
 GameLobby.prototype.removeListeners = function(player) {
     // None yet
 };
+/* jshint ignore: end */
 
 module.exports = GameLobby;

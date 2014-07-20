@@ -27,5 +27,29 @@
     "express": "^4.5.1",
     "ejs": "^1.0.0",
     "node-html-encoder": "0.0.2"
+  },
+  "jshintConfig": {
+    "bitwise": true,
+    "camelcase": true,
+    "curly": true,
+    "eqeqeq": true,
+    "forin": true,
+    "indent": 4,
+    "latedef": "nofunc",
+    "newcap": true,
+    "noarg": true,
+    "nonew": true,
+    "quotmark": "double",
+    "undef": true,
+    "unused": true,
+    "debug": true,
+    "multistr": true,
+    
+    "browser": true,
+    "jquery": true,
+    "node": true,
+    "globals": {
+        "io": true
+    }
   }
 }
