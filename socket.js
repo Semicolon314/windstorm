@@ -229,6 +229,12 @@ module.exports = function(server) {
             }
         });
         
+        socket.on("startgame", function() {
+            if(player.gameLobby !== null && player.gameLobby.leader.name === player.name) {
+                player.gameLobby.startGame();
+            }
+        });
+        
         socket.on("ping", function(id) {
             // Relay ping
             socket.emit("ping", id);

@@ -259,6 +259,10 @@ $(function() {
         socket.emit("creategame", {name: gameName, map: gameMap, playerCount: playerCount});
     });
     
+    $("#startGameButton").click(function() {
+        socket.emit("startgame");
+    });
+    
     function toggleJoinType() {
         socket.emit("togglejointype");
     }

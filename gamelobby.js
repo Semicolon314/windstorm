@@ -1,5 +1,8 @@
 var idCounter = 0;
 
+var Game = require("./assets/js/game");
+var Maps = require("./maps");
+
 function GameLobby(io, options) {
     this.id = ++idCounter;
     
@@ -165,6 +168,28 @@ GameLobby.prototype.toggleJoinType = function(player) {
             return;
         }
     }
+};
+
+// Starts the game
+GameLobby.prototype.startGame = function() {
+    this.game = new Game();
+    
+    // Select the map
+    if(this.map === "random") {
+        this.map = Maps.random();
+    }
+    var mapObj = Maps.get(this.map);
+    
+    var playerList = [];
+    this.players.forEach(function(player) {
+        playerList.push(player.id);
+    });
+    
+    this.game.setup(mapObj, playerList);
+    
+    this.started = true;
+    
+    this.sendUpdate();
 };
 
 /* jshint ignore: start */
