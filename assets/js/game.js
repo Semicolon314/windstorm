@@ -39,6 +39,11 @@ var Game = (function() {
                 lastMove: this.units[i].lastMove - Game.millis()
             });
         }
+        
+        return {
+            map: this.map,
+            units: units
+        };
     };
     
     Game.prototype.load = function(data) {

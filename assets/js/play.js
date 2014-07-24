@@ -2,8 +2,11 @@ $(function() {
     /* Global variables */
     var gameList = [];
     var currentLobby = null;
+    var game = null;
     var joinType = null; // "player" or "spectator"
     var userName = "You";
+    var currentView = "none";
+    var lastFrame = null; // last frame for game animation
 
     /* Socket.IO methods */
     var socket = io();
@@ -94,6 +97,12 @@ $(function() {
     socket.on("leavegame", function() {
         currentLobby = null;
         setGameView("List");
+    });
+    
+    socket.on("fullgame", function(data) {
+        game = new Game();
+        game.load(data);
+        setGameView("Canvas");
     });
     
     function ping() {
@@ -270,9 +279,26 @@ $(function() {
     /* UI Update methods */
     // Sets the current game view
     function setGameView(view) {
+        if(currentView === view) {
+            return;
+        }
+        
+        currentView = view;
+        
         $(".game-view").hide();
         
         $("#gameView" + view).show();
+        
+        if(view === "Canvas") {
+            // Hide the game-holder
+            $("#gameHolder").hide();
+            
+            // Start the rendering loop
+            window.requestAnimationFrame(renderGame);
+        } else {
+            // Show the game-holder
+            $("#gameHolder").show();
+        }
     }
     
     // Makes a Join/Spectate button for the game list for the given game id
@@ -404,5 +430,33 @@ $(function() {
             
         // Add listeners for player kicking and leader-ing
         $("[player-target] button").click(lobbyPlayerButtonClick);
+    }
+    
+    function renderGame(timestamp) {
+        // Timestamp stuff not needed for actual game mechanics
+        // Will possibly be used for timestamp
+        if(lastFrame === null) {
+            lastFrame = timestamp;
+        }
+        var delta = timestamp - lastFrame;
+        lastFrame = timestamp;
+        
+        // Get the canvas and context
+        var canvas = $("#gameCanvas");
+        canvas[0].width = canvas.width(); // Ensure element size matches style size
+        canvas[0].height = canvas.height();
+        var ctx = canvas[0].getContext("2d");
+        
+        // Clear the canvas
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width(), canvas.height());
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText("FPS: " + Math.round(1000 / delta / 10) * 10, 20, 20);
+        
+        // Do the next frame
+        if(currentView === "Canvas") {
+            window.requestAnimationFrame(renderGame);
+        }
     }
 });

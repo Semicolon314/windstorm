@@ -46,6 +46,10 @@ GameLobby.prototype.sendUpdate = function() {
     this.io.emit("gamelist", [this.serialize()]);
 };
 
+GameLobby.prototype.gameFullUpdate = function() {
+    this.io.to("game" + this.id).emit("fullgame", this.game.serialize());
+};
+
 GameLobby.prototype.deleteSelf = function() {
     // Remove all players
     for(var i = 0; i < this.players.length; i++) {
@@ -190,6 +194,7 @@ GameLobby.prototype.startGame = function() {
     this.started = true;
     
     this.sendUpdate();
+    this.gameFullUpdate();
 };
 
 /* jshint ignore: start */
