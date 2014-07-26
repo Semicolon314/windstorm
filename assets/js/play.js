@@ -454,9 +454,57 @@ $(function() {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText("FPS: " + Math.round(1000 / delta / 10) * 10, 20, 20);
         
+        // Draw the map
+        var mapImage = getMapImage(25);
+        drawUnits(mapImage, 25);
+        ctx.drawImage(mapImage, 0, 0);
+        
         // Do the next frame
         if(currentView === "Canvas") {
             window.requestAnimationFrame(renderGame);
+        }
+    }
+    
+    // Returns an image of the map where size is the size of a tile
+    function getMapImage(size) {
+        var map = game.map;
+        var canvas = document.createElement("canvas");
+        canvas.width = map.cols * size;
+        canvas.height = map.rows * size;
+        var ctx = canvas.getContext("2d");
+        
+        ctx.strokeStyle = "#222222";
+        for(var r = 0; r < map.rows; r++) {
+            for(var c = 0; c < map.cols; c++) {
+                if(map.data[r][c] === 0) { // Wall
+                    ctx.fillStyle = "#222222";
+                } else if(map.data[r][c] === 1) { // Floor
+                    ctx.fillStyle = "#DDDDDD";
+                }
+                ctx.fillRect(c * size, r * size, size, size);
+                ctx.strokeRect(c * size, r * size, size, size);
+            }
+        }
+        
+        return canvas;
+    }
+    
+    // Draws units on top of a map image where size is the size of a tile
+    function drawUnits(mapImage, size) {
+        var ctx = mapImage.getContext("2d");
+    
+        for(var i = 0; i < game.units.length; i++) {
+            var u = game.units[i];
+            var color = "#" + (u.player * 101009).toString(16).substring(-6);
+            ctx.fillStyle = color;
+            
+            if(u.type === 1) { // Moving unit
+                ctx.beginPath();
+                ctx.arc(size * u.col + size / 2, size * u.row + size / 2, size / 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if(u.type === 2) { // Base
+                ctx.fillRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3);
+            }
         }
     }
 });
