@@ -465,9 +465,10 @@ $(function() {
         ctx.fillText("FPS: " + Math.round(1000 / delta / 10) * 10, 20, 20);
         
         // Draw the map
-        var mapImage = getMapImage(25);
-        drawUnits(mapImage, 25);
-        ctx.drawImage(mapImage, 0, 0);
+        var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);
+        var mapImage = getMapImage(size);
+        drawUnits(mapImage, size);
+        ctx.drawImage(mapImage, (canvas.width() - size * game.map.cols) / 2, (canvas.height() - size * game.map.rows) / 2);
         
         // Do the next frame
         if(currentView === "Canvas") {
