@@ -58,8 +58,6 @@ $(function() {
                 }
             });
             
-            console.log(data.id + " is in list at " + inGameList);
-            
             if(inGameList !== -1) {
                 if(!data.remove) {
                     gameList[inGameList] = data;
@@ -302,7 +300,7 @@ $(function() {
     }
     
     // Makes a Join/Spectate button for the game list for the given game id
-    function makeGameListButton(id) {
+    function makeGameListButton(id, onlySpectate) {
         var buttonDiv = $("<div class=\"btn-group btn-group-justified\"></div>");
         var joinButtonGroup = $("<div class=\"btn-group\"><button type=\"button\" class=\"btn btn-default\">Join</button></div>");
         var specButtonGroup = $("<div class=\"btn-group\"><button type=\"button\" class=\"btn btn-default\">Spectate</button></div>");
@@ -315,6 +313,10 @@ $(function() {
         
         joinButton.attr("action", "join");
         specButton.attr("action", "spectate");
+        
+        if(onlySpectate) {
+            joinButton.prop("disabled", true);
+        }
         
         buttonDiv.append(joinButtonGroup);
         buttonDiv.append(specButtonGroup);
@@ -341,7 +343,7 @@ $(function() {
             
             // Button column
             var buttonCol = $("<td></td>");
-            buttonCol.append(makeGameListButton(game.id));
+            buttonCol.append(makeGameListButton(game.id, game.started));
             row.append(buttonCol);
             
             // Game name column
@@ -495,7 +497,7 @@ $(function() {
     
         for(var i = 0; i < game.units.length; i++) {
             var u = game.units[i];
-            var color = "#" + (u.player * 101009).toString(16).substring(-6);
+            var color = game.playerColors[u.player];
             ctx.fillStyle = color;
             
             if(u.type === 1) { // Moving unit

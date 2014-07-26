@@ -5,11 +5,20 @@
 
 var Game = (function() {
     var unitIdCounter = 0;
+    var colorList = [
+        "#ff8000",
+        "#ff0080",
+        "#00ff80",
+        "#80ff00",
+        "#8000ff",
+        "#0080ff"
+    ];
         
     function Game() {
         // Create a new empty game object
         this.units = [];
         this.map = {rows: 0, cols: 0};
+        this.playerColors = {};
     }
     
     // Timing helper function
@@ -42,12 +51,14 @@ var Game = (function() {
         
         return {
             map: this.map,
-            units: units
+            units: units,
+            playerColors: this.playerColors
         };
     };
     
     Game.prototype.load = function(data) {
         this.map = data.map;
+        this.playerColors = data.playerColors;
         
         this.units = data.units;
         for(var i = 0; i < data.units.length; i++) {
@@ -60,9 +71,14 @@ var Game = (function() {
         this.map = map;
         
         var spawns = map.spawns.slice(0);
+        var colors = colorList.slice(0);
         
         this.units = [];
         for(var i = 0; i < players.length; i++) {
+            // Choose a color
+            var color = colors.splice(Math.floor(Math.random() * colors.length), 1)[0];
+            this.playerColors[players[i] + ""] = color;
+            
             // Choose a spawn location
             var spawn = spawns.splice(Math.floor(Math.random() * spawns.length), 1)[0];
             
@@ -95,6 +111,6 @@ var Game = (function() {
     return Game;
 }());
 
-if(typeof module.exports === "object") {
+if(typeof module === "object" && typeof module.exports === "object") {
     module.exports = Game;
 }

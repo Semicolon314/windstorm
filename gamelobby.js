@@ -102,6 +102,11 @@ GameLobby.prototype.addPlayer = function(player, spec) {
         joinType: joinType
     });
     
+    // Send the new player a full game update if the game is started
+    if(this.started) {
+        player.socket.emit("fullgame", this.game.serialize());
+    }
+    
     return joinType;
 };
 
