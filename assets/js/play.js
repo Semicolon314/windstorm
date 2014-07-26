@@ -212,9 +212,13 @@ $(function() {
         return currentLobby.leader === userName;
     }
     
+    function toggleJoinType() {
+        socket.emit("togglejointype");
+    }
+    
     /* UI Input methods */
     $("#messageBox").keydown(function(e) {
-        var k = e.keyCode ? e.keyCode : e.charCode;
+        var k = e.which;
         
         if(k === 13) { // Enter
             // Ensure the message isn't empty
@@ -270,9 +274,13 @@ $(function() {
         socket.emit("startgame");
     });
     
-    function toggleJoinType() {
-        socket.emit("togglejointype");
-    }
+    $(document).keydown(function(e) {
+        var k = e.which;
+        
+        if(k === 70 && e.shiftKey) { // Shift-F
+            $(".game-holder").toggleClass("fullscreen");
+        }
+    });
     
     /* UI Update methods */
     // Sets the current game view
@@ -445,8 +453,8 @@ $(function() {
         
         // Get the canvas and context
         var canvas = $("#gameCanvas");
-        canvas[0].width = canvas.width(); // Ensure element size matches style size
-        canvas[0].height = canvas.height();
+        canvas[0].width = canvas.parent().width(); // Ensure element size matches style size
+        canvas[0].height = canvas.parent().height();
         var ctx = canvas[0].getContext("2d");
         
         // Clear the canvas
