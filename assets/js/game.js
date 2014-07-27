@@ -108,6 +108,70 @@ var Game = (function() {
         }
     };
     
+    Game.prototype.unitAt = function(pos) {
+        for(var i = 0; i < this.units; i++) {
+            var unit = this.units[i];
+            if(unit.row === pos.row && unit.col === pos.col) {
+                return unit;
+            }
+        }
+        
+        return null;
+    };
+    
+    Game.prototype.unitById = function(id) {
+        for(var i = 0; i < this.units; i++) {
+            var unit = this.units[i];
+            if(unit.id === id) {
+                return unit;
+            }
+        }
+        
+        return null;
+    };
+    
+    // Checks whether the given move is valid for the given player
+    // Returns "valid" if the move is valid, returns error otherwise
+    Game.prototype.validMove = function(move, player) {
+        if(move.type === "move") {
+            var unit = this.unitById(move.unitId);
+            if(unit !== null) {
+                if(unit.player === player) {
+                    if(unit.type === 1) {
+                        var dist = Math.abs(unit.row - move.target.row) + Math.abs(unit.col - move.target.col);
+                        if(dist <= 1) {
+                            return "valid";
+                        } else {
+                            return "invalidtarget"; // Target is too far away
+                        }
+                    } else {
+                        return "invalidunittype"; // The piece wasn't a movable piece
+                    }
+                } else {
+                    return "wrongplayer"; // Not correct controller
+                }
+            } else {
+                return "invalidid"; // Invalid unit id
+            }
+        } else {
+            return "invalidtype"; // Invalid move type
+        }
+    };
+    
+    // Makes the given move, and returns a list of unit updates
+    // If the move was successful, the updates will probably just be the moved piece
+    // If the move failed, the updates will include relevant corrections
+    Game.prototype.makeMove = function(move, player) {
+        var validity = this.validMove(move, player);
+        
+        if(validity === "valid") {
+            var unit = this.unitById(move.unitId);
+            
+        } else {
+            
+        }
+    };
+    
     return Game;
 }());
 

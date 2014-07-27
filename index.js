@@ -16,7 +16,8 @@ app.use("/assets", express.static(__dirname + "/assets"));
 require("./routes")(app);
 
 // Start listening
-var server = app.listen(5000, function() {
+var port = Number(process.env.PORT || 5000);
+var server = app.listen(port, function() {
     console.log("Listening on port %d", server.address().port);
 });
 
