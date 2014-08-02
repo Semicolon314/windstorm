@@ -19,12 +19,12 @@ var Game = (function() {
         this.units = [];
         this.map = {rows: 0, cols: 0};
         this.playerColors = {};
+        this.step = 0; // Current game step
     }
     
-    // Timing helper function
-    Game.millis = function() {
-        return new Date().getTime();
-    };
+    // Game constants
+    Game.STEPS_PER_SECOND = 30;
+    Game.UNIT_COOLDOWN = 30;
     
     // Unit constructor
     Game.Unit = function(data) {
@@ -33,7 +33,8 @@ var Game = (function() {
         this.col = data.col;
         this.type = data.type || 1; // 1 is moving unit, 2 is base
         this.player = data.player;
-        this.lastMove = Game.millis() - 1000;
+        this.lastMove = -Game.UNIT_COOLDOWN;
+        this.moveQueue = [];
     };
     
     Game.prototype.serialize = function() {
@@ -45,25 +46,26 @@ var Game = (function() {
                 col: this.units[i].col,
                 type: this.units[i].type,
                 player: this.units[i].player,
-                lastMove: this.units[i].lastMove - Game.millis()
+                lastMove: this.units[i].lastMove
             });
         }
         
         return {
             map: this.map,
             units: units,
-            playerColors: this.playerColors
+            playerColors: this.playerColors,
+            step: this.step
         };
     };
     
     Game.prototype.load = function(data) {
         this.map = data.map;
         this.playerColors = data.playerColors;
+        this.step = data.step;
         
         this.units = data.units;
         for(var i = 0; i < data.units.length; i++) {
-            this.units[i].lastMove += Game.millis();
-            this.units[i].moves = [];
+            this.units[i].moveQueue = [];
         }
     };
     
@@ -108,8 +110,15 @@ var Game = (function() {
         }
     };
     
+    // Checks whether the given position is on the map
+    Game.prototype.onMap = function(pos) {
+        return pos.row >= 0 && pos.col >= 0 &&
+                pos.row < this.map.rows &&
+                pos.col < this.map.cols;
+    };
+    
     Game.prototype.unitAt = function(pos) {
-        for(var i = 0; i < this.units; i++) {
+        for(var i = 0; i < this.units.length; i++) {
             var unit = this.units[i];
             if(unit.row === pos.row && unit.col === pos.col) {
                 return unit;
@@ -120,7 +129,7 @@ var Game = (function() {
     };
     
     Game.prototype.unitById = function(id) {
-        for(var i = 0; i < this.units; i++) {
+        for(var i = 0; i < this.units.length; i++) {
             var unit = this.units[i];
             if(unit.id === id) {
                 return unit;
@@ -130,17 +139,44 @@ var Game = (function() {
         return null;
     };
     
-    // Checks whether the given move is valid for the given player
+    // Returns a list of units next to (not on) the given position
+    Game.prototype.adjacentUnits = function(pos) {
+        var list = [];
+        
+        for(var dr = -1; dr <= 1; dr++) {
+            for(var dc = -1; dc <= 1; dc++) {
+                if(Math.abs(dr) + Math.abs(dc) === 1) {
+                    var target = {row: pos.row + dr, col: pos.col + dc};
+                    if(this.onMap(target)) {
+                        var unit = this.unitAt(target);
+                        if(unit !== null) {
+                            list.push(unit);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return list;
+    };
+    
+    // Checks whether the given action is valid for the given player
     // Returns "valid" if the move is valid, returns error otherwise
-    Game.prototype.validMove = function(move, player) {
-        if(move.type === "move") {
-            var unit = this.unitById(move.unitId);
+    Game.prototype.validAction = function(action, player) {
+        if(action.type === "move") {
+            var unit = this.unitById(action.unitId);
             if(unit !== null) {
                 if(unit.player === player) {
                     if(unit.type === 1) {
-                        var dist = Math.abs(unit.row - move.target.row) + Math.abs(unit.col - move.target.col);
+                        var lastPos = unit.moveQueue.length > 0 ? unit.moveQueue[unit.moveQueue.length - 1] : {row: unit.row, col: unit.col};
+                        
+                        var dist = Math.abs(lastPos.row - action.target.row) + Math.abs(lastPos.col - action.target.col);
                         if(dist <= 1) {
-                            return "valid";
+                            if(this.map.data[action.target.row][action.target.col] === 1) {
+                                return "valid";
+                            } else {
+                                return "invalidtile"; // Tile is not walkable
+                            }
                         } else {
                             return "invalidtarget"; // Target is too far away
                         }
@@ -158,17 +194,162 @@ var Game = (function() {
         }
     };
     
-    // Makes the given move, and returns a list of unit updates
-    // If the move was successful, the updates will probably just be the moved piece
-    // If the move failed, the updates will include relevant corrections
-    Game.prototype.makeMove = function(move, player) {
-        var validity = this.validMove(move, player);
+    // Makes the given action, and returns an update
+    // If the action failed, the update will include relevant corrections
+    Game.prototype.makeAction = function(action, player) {
+        var validity = this.validAction(action, player);
+        var unit;
+        var updates = [];
         
         if(validity === "valid") {
-            var unit = this.unitById(move.unitId);
-            
+            if(action.type === "move") {
+                unit = this.unitById(action.unitId);
+                unit.moveQueue.push(action.target);
+            }
         } else {
+            if(validity === "invalidtype") {
+                return []; // No updates
+            } else if(action.type === "move") {
+                if(validity === "invalidid") {
+                    // The unit is probably dead
+                    updates.push({
+                        id: action.unitId,
+                        remove: true
+                    });
+                } else if(validity === "wrongplayer") {
+                    // Tell them the correct player
+                    updates.push({
+                        id: action.unitId,
+                        player: this.unitById(action.unitId).player
+                    });
+                } else if(validity === "invalidunittype") {
+                    // Tell them the correct unit type
+                    updates.push({
+                        id: action.unitId,
+                        type: this.unitById(action.unitId).type
+                    });
+                } else if(validity === "invalidtarget") {
+                    // Tell them the correct unit position and clear moveQueue
+                    unit = this.unitById(action.unitId);
+                    updates.push({
+                        id: action.unitId,
+                        row: unit.row,
+                        col: unit.col,
+                        moveQueue: []
+                    });
+                } else if(validity === "invalidtile") {
+                    // Resend the map
+                    // For now, do nothing
+                }
+            }
+        }
+        
+        return {
+            step: this.step,
+            updates: updates
+        };
+    };
+    
+    // Removes a unit with the given id
+    Game.prototype.removeUnit = function(id) {
+        for(var i = 0; i < this.units.length; i++) {
+            if(this.units[i].id === id) {
+                this.units.splice(i, 1);
+                return;
+            }
+        }
+    };
+    
+    // Performs a single step and returns an update
+    Game.prototype.doStep = function() {
+        this.step += 1;
+        
+        var updates = [];
+        var i, unit;
+        
+        for(i = 0; i < this.units.length; i++) {
+            unit = this.units[i];
+            if(unit.moveQueue.length > 0 && this.step - unit.lastMove > Game.UNIT_COOLDOWN) {
+                // See if the target is an okay place to move
+                var targetUnit = this.unitAt(unit.moveQueue[0]);
+                if(targetUnit === null) {
+                    unit.row = unit.moveQueue[0].row;
+                    unit.col = unit.moveQueue[0].col;
+                    unit.lastMove = this.step;
+                    unit.moveQueue = unit.moveQueue.slice(1);
+                    
+                    updates.push({
+                        id: unit.id,
+                        row: unit.row,
+                        col: unit.col,
+                        lastMove: unit.lastMove
+                    });
+                } else {
+                    // Clear the unit's move queue and send current position
+                    unit.moveQueue = [];
+                    
+                    updates.push({
+                        id: unit.id,
+                        row: unit.row,
+                        col: unit.col,
+                        moveQueue: []
+                    });
+                }
+            }
+        }
+        
+        // Kill off dead units
+        var deadList = [];
+        for(i = 0; i < this.units.length; i++) {
+            unit = this.units[i];
+            var adj = this.adjacentUnits(unit);
             
+            var enemies = 0;
+            for(var j = 0; j < adj.length; j++) {
+                if(adj[j].player !== unit.player) {
+                    enemies += 1;
+                }
+            }
+            
+            if(enemies >= 2) {
+                deadList.push(unit.id);
+                updates.push({
+                    id: unit.id,
+                    remove: true
+                });
+            }
+        }
+        for(i = 0; i < deadList.length; i++) {
+            this.removeUnit(deadList[i]);
+        }
+        
+        return {
+            step: this.step,
+            updates: updates
+        };
+    };
+    
+    Game.prototype.applyUpdate = function(updateData) {
+        this.step = updateData.step;
+        
+        if(updateData.updates) {
+            for(var i = 0; i < updateData.updates.length; i++) {
+                var update = updateData.updates[i];
+                var unit = this.unitById(update.id);
+                
+                if(unit === null) {
+                    unit = new Game.Unit();
+                    unit.id = update.id;
+                    this.units.push(unit);
+                }
+                
+                unit.row = update.row || unit.row;
+                unit.col = update.col || unit.col;
+                unit.type = update.type || unit.type;
+                unit.player = update.player || unit.player;
+                unit.lastMove = update.lastMove || unit.lastMove;
+                unit.moveQueue = update.moveQueue || unit.moveQueue;
+            }
         }
     };
     

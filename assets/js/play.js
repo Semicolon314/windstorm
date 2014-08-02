@@ -103,6 +103,10 @@ $(function() {
         setGameView("Canvas");
     });
     
+    socket.on("gameupdate", function(data) {
+        game.applyUpdate(data);
+    });
+    
     function ping() {
         var id = Math.round(Math.random() * 1000000);
         pings[id] = millis();
@@ -463,6 +467,8 @@ $(function() {
         
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText("FPS: " + Math.round(1000 / delta / 10) * 10, 20, 20);
+        
+        ctx.fillText("Step: " + game.step, 20, 50);
         
         // Draw the map
         var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);

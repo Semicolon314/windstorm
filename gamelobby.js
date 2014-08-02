@@ -202,6 +202,13 @@ GameLobby.prototype.startGame = function() {
     this.gameFullUpdate();
 };
 
+// Does a step in the game
+GameLobby.prototype.doGameStep = function() {
+    var updateData = this.game.doStep();
+
+    this.io.to("game" + this.id).emit("gameupdate", updateData);
+};
+
 /* jshint ignore: start */
 GameLobby.prototype.addListeners = function(player) {
     // None yet
