@@ -731,6 +731,31 @@ $(function() {
                 ctx.fillRect(pixel.x - size / 3, pixel.y - size / 3, size * 2 / 3, size * 2 / 3);
                 ctx.strokeRect(pixel.x - size / 3, pixel.y - size / 3, size * 2 / 3, size * 2 / 3);
             }
+            
+            // Draw cooldown
+            if(u.lastMove + Game.UNIT_COOLDOWN > game.step) {
+                var percent = (u.lastMove + Game.UNIT_COOLDOWN - game.step) / Game.UNIT_COOLDOWN;
+                var endAngle = -Math.PI / 2 - (percent * Math.PI * 2);
+                
+                ctx.fillStyle = "rgba(128, 128, 128, 0.5)";
+                if(percent < 0.5) {
+                    ctx.beginPath();
+                    ctx.arc(pixel.x, pixel.y, size / 3, -Math.PI / 2, endAngle, true);
+                    ctx.moveTo(pixel.x, pixel.y - size / 3);
+                    ctx.lineTo(pixel.x, pixel.y);
+                    ctx.lineTo(pixel.x + Math.cos(endAngle) * size / 3,
+                            pixel.y + Math.sin(endAngle) * size / 3);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(pixel.x, pixel.y, size / 3, Math.PI / 2, -Math.PI / 2);
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(pixel.x, pixel.y, size / 3, endAngle, endAngle + Math.PI);
+                    ctx.fill();
+                }
+            }
         }
     }
 });
