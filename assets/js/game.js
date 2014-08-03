@@ -165,30 +165,47 @@ var Game = (function() {
     Game.prototype.validAction = function(action, player) {
         if(action.type === "move") {
             var unit = this.unitById(action.unitId);
-            if(unit !== null) {
-                if(unit.player === player) {
-                    if(unit.type === 1) {
-                        var lastPos = unit.moveQueue.length > 0 ? unit.moveQueue[unit.moveQueue.length - 1] : {row: unit.row, col: unit.col};
-                        
-                        var dist = Math.abs(lastPos.row - action.target.row) + Math.abs(lastPos.col - action.target.col);
-                        if(dist <= 1) {
-                            if(this.map.data[action.target.row][action.target.col] === 1) {
-                                return "valid";
-                            } else {
-                                return "invalidtile"; // Tile is not walkable
-                            }
-                        } else {
-                            return "invalidtarget"; // Target is too far away
-                        }
-                    } else {
-                        return "invalidunittype"; // The piece wasn't a movable piece
-                    }
-                } else {
-                    return "wrongplayer"; // Not correct controller
-                }
-            } else {
+            
+            if(unit === null) {
                 return "invalidid"; // Invalid unit id
             }
+            
+            if(unit.player !== player) {
+                return "wrongplayer"; // Not correct controller
+            }
+            
+            if(unit.type !== 1) {
+                return "invalidunittype"; // The piece wasn't a movable piece
+            }
+            
+            var lastPos = unit.moveQueue.length > 0 ? unit.moveQueue[unit.moveQueue.length - 1] : {row: unit.row, col: unit.col};
+            
+            var dist = Math.abs(lastPos.row - action.target.row) + Math.abs(lastPos.col - action.target.col);
+            
+            if(dist > 1) {
+                return "invalidtarget"; // Target is too far away
+            }
+            
+            if(this.map.data[action.target.row][action.target.col] !== 1) {
+                return "invalidtile"; // Tile is not walkable
+            }
+            
+            return "valid";
+        } else if(action.type === "cancelqueue") {
+            var unit = this.unitById(action.unitId);
+            if(unit === null) {
+                return "invalidid"; // Invalid unit id
+            }
+            
+            if(unit.player !== player) {
+                return "wrongplayer"; // Not correct controller
+            }
+            
+            if(unit.type !== 1) {
+                return "invalidunittype"; // The piece wasn't a movable piece
+            }
+            
+            return "valid";
         } else {
             return "invalidtype"; // Invalid move type
         }
@@ -205,6 +222,21 @@ var Game = (function() {
             if(action.type === "move") {
                 unit = this.unitById(action.unitId);
                 unit.moveQueue.push(action.target);
+            } else if(action.type === "cancelqueue") {
+                unit = this.unitById(action.unitId);
+                
+                if(action.count === -1) {
+                    // Clear the whole moveQueue
+                    unit.moveQueue = [];
+                    updates.push({
+                        id: action.unitId,
+                        moveQueue: []
+                    });
+                } else {
+                    // Remove the last element count elements
+                    unit.moveQueue = unit.moveQueue.slice(0, unit.moveQueue.length - action.count);
+                    // No relevant update
+                }
             }
         } else {
             if(validity === "invalidtype") {
@@ -241,6 +273,26 @@ var Game = (function() {
                     // Resend the map
                     // For now, do nothing
                 }
+            } else if(action.type === "cancelqueue") {
+                if(validity === "invalidid") {
+                    // The unit is probably dead
+                    updates.push({
+                        id: action.unitId,
+                        remove: true
+                    });
+                } else if(validity === "wrongplayer") {
+                    // Tell them the correct player
+                    updates.push({
+                        id: action.unitId,
+                        player: this.unitById(action.unitId).player
+                    });
+                } else if(validity === "invalidunittype") {
+                    // Tell them the correct unit type
+                    updates.push({
+                        id: action.unitId,
+                        type: this.unitById(action.unitId).type
+                    });
+                }
             }
         }
         
@@ -265,13 +317,13 @@ var Game = (function() {
         this.step += 1;
         
         var updates = [];
-        var i, unit;
+        var i, j, unit, targetUnit;
         
         for(i = 0; i < this.units.length; i++) {
             unit = this.units[i];
             if(unit.moveQueue.length > 0 && this.step - unit.lastMove > Game.UNIT_COOLDOWN) {
                 // See if the target is an okay place to move
-                var targetUnit = this.unitAt(unit.moveQueue[0]);
+                targetUnit = this.unitAt(unit.moveQueue[0]);
                 if(targetUnit === null) {
                     unit.row = unit.moveQueue[0].row;
                     unit.col = unit.moveQueue[0].col;
@@ -301,11 +353,11 @@ var Game = (function() {
         // TEMPORARY AUTO-SPAWNING
         if(this.step % 600 === 0) {
             // Create new unit at each base
-            for(var i = 0; i < this.units.length; i++) {
+            for(i = 0; i < this.units.length; i++) {
                 unit = this.units[i];
                 if(unit.type === 2) {
                     // Max 8 tries to spawn
-                    for(var j = 0; j < 8; j++) {
+                    for(j = 0; j < 8; j++) {
                         // Choose a direction
                         var dir = Math.floor(Math.random() * 4);
                         var dc = dir % 2 === 0 ? dir - 1 : 0;
@@ -314,7 +366,7 @@ var Game = (function() {
                         var target = {row: unit.row + dr, col: unit.col + dc};
                         
                         // See if the direction is clear
-                        var targetUnit = this.unitAt(target);
+                        targetUnit = this.unitAt(target);
                         
                         if(targetUnit === null) {
                             var newUnit = new Game.Unit({
@@ -339,7 +391,7 @@ var Game = (function() {
             var adj = this.adjacentUnits(unit);
             
             var enemies = 0;
-            for(var j = 0; j < adj.length; j++) {
+            for(j = 0; j < adj.length; j++) {
                 if(adj[j].player !== unit.player) {
                     enemies += 1;
                 }
