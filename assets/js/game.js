@@ -232,12 +232,10 @@ var Game = (function() {
                         id: action.unitId,
                         moveQueue: []
                     });
-                    console.log("Whole thing is cleared");
                 } else {
                     // Remove the last element count elements
                     unit.moveQueue = unit.moveQueue.slice(0, unit.moveQueue.length - action.count);
                     // No relevant update
-                    console.log("One is cleared");
                 }
             }
         } else {

@@ -8,6 +8,7 @@ $(function() {
     var currentView = "none";
     var lastFrame = null; // last frame for game animation
     var selectedUnit = null;
+    var showAllPaths = false;
 
     /* Socket.IO methods */
     var socket = io();
@@ -367,6 +368,18 @@ $(function() {
                     unitId: selectedUnit,
                     count: -1
                 });
+            } else if(k === 32) { // Space (show all paths)
+                showAllPaths = true;
+            }
+        }
+    });
+    
+    $(document).keyup(function(e) {
+        var k = e.which;
+        
+        if(game && currentView === "Canvas") {
+            if(k === 32) { // Space (show all paths)
+                showAllPaths = false;
             }
         }
     });
@@ -577,7 +590,13 @@ $(function() {
         var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);
         
         var mapImage = getMapImage(size);
-        drawSelectedPath(mapImage, size);
+        if(!showAllPaths) {
+            drawUnitPath(mapImage, size, selectedUnit);
+        } else {
+            for(var i = 0; i < game.units.length; i++) {
+                drawUnitPath(mapImage, size, game.units[i].id);
+            }
+        }
         drawUnits(mapImage, size);
         
         ctx.drawImage(mapImage, (canvas.width() - size * game.map.cols) / 2, (canvas.height() - size * game.map.rows) / 2);
@@ -616,18 +635,12 @@ $(function() {
         return {y: tile.row * size + size / 2, x: tile.col * size + size / 2};
     }
     
-    function drawSelectedPath(mapImage, size) {
+    function drawUnitPath(mapImage, size, unitId) {
         var ctx = mapImage.getContext("2d");
         
-        // Draw the selected unit's path
-        if(selectedUnit === null) {
-            return;
-        }
-        
-        var unit = game.unitById(selectedUnit);
+        var unit = game.unitById(unitId);
         
         if(unit === null) {
-            selectedUnit = null;
             return;
         }
         
