@@ -236,6 +236,14 @@ $(function() {
         };
     }
     
+    function makeAction(action) {
+        // Make sure the action is valid
+        if(game.validAction(action, clientData.id) === "valid") {
+            game.makeAction(action, clientData.id);
+            socket.emit("makeaction", action);
+        }
+    }
+    
     function moveSelectedUnit(dir) {
         if(selectedUnit !== null) {
             var unit = game.unitById(selectedUnit);
@@ -269,11 +277,7 @@ $(function() {
                 target: target
             };
             
-            // Make sure the move is valid
-            if(game.validAction(action, clientData.id) === "valid") {
-                game.makeAction(action, clientData.id);
-                socket.emit("makeaction", action);
-            }
+            makeAction(action);
         }
     }
     
@@ -351,6 +355,18 @@ $(function() {
                 moveSelectedUnit("down");
             } else if(k === 87) { // W (up)
                 moveSelectedUnit("up");
+            } else if(k === 69) { // E (cancel 1)
+                makeAction({
+                    type: "cancelqueue",
+                    unitId: selectedUnit,
+                    count: 1
+                });
+            } else if(k === 81) { // Q (cancel all)
+                makeAction({
+                    type: "cancelqueue",
+                    unitId: selectedUnit,
+                    count: -1
+                });
             }
         }
     });
@@ -660,9 +676,6 @@ $(function() {
                                 startAngle + Math.PI * 3 / 2 === endAngle;
                         
                         ctx.arc(corner.x, corner.y, size / 2, startAngle, endAngle, ccw);
-                        
-                        console.log("Arc from (" + prevMid.x + "," + prevMid.y + 
-                                ") to (" + nextMid.x + "," + nextMid.y + ")");
                         
                         ctx.moveTo(nextMid.x, nextMid.y);
                     }

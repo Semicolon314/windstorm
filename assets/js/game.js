@@ -165,30 +165,47 @@ var Game = (function() {
     Game.prototype.validAction = function(action, player) {
         if(action.type === "move") {
             var unit = this.unitById(action.unitId);
-            if(unit !== null) {
-                if(unit.player === player) {
-                    if(unit.type === 1) {
-                        var lastPos = unit.moveQueue.length > 0 ? unit.moveQueue[unit.moveQueue.length - 1] : {row: unit.row, col: unit.col};
-                        
-                        var dist = Math.abs(lastPos.row - action.target.row) + Math.abs(lastPos.col - action.target.col);
-                        if(dist <= 1) {
-                            if(this.map.data[action.target.row][action.target.col] === 1) {
-                                return "valid";
-                            } else {
-                                return "invalidtile"; // Tile is not walkable
-                            }
-                        } else {
-                            return "invalidtarget"; // Target is too far away
-                        }
-                    } else {
-                        return "invalidunittype"; // The piece wasn't a movable piece
-                    }
-                } else {
-                    return "wrongplayer"; // Not correct controller
-                }
-            } else {
+            
+            if(unit === null) {
                 return "invalidid"; // Invalid unit id
             }
+            
+            if(unit.player !== player) {
+                return "wrongplayer"; // Not correct controller
+            }
+            
+            if(unit.type !== 1) {
+                return "invalidunittype"; // The piece wasn't a movable piece
+            }
+            
+            var lastPos = unit.moveQueue.length > 0 ? unit.moveQueue[unit.moveQueue.length - 1] : {row: unit.row, col: unit.col};
+            
+            var dist = Math.abs(lastPos.row - action.target.row) + Math.abs(lastPos.col - action.target.col);
+            
+            if(dist > 1) {
+                return "invalidtarget"; // Target is too far away
+            }
+            
+            if(this.map.data[action.target.row][action.target.col] !== 1) {
+                return "invalidtile"; // Tile is not walkable
+            }
+            
+            return "valid";
+        } else if(action.type === "cancelqueue") {
+            var unit = this.unitById(action.unitId);
+            if(unit === null) {
+                return "invalidid"; // Invalid unit id
+            }
+            
+            if(unit.player !== player) {
+                return "wrongplayer"; // Not correct controller
+            }
+            
+            if(unit.type !== 1) {
+                return "invalidunittype"; // The piece wasn't a movable piece
+            }
+            
+            return "valid";
         } else {
             return "invalidtype"; // Invalid move type
         }
@@ -205,6 +222,23 @@ var Game = (function() {
             if(action.type === "move") {
                 unit = this.unitById(action.unitId);
                 unit.moveQueue.push(action.target);
+            } else if(action.type === "cancelqueue") {
+                unit = this.unitById(action.unitId);
+                
+                if(action.count === -1) {
+                    // Clear the whole moveQueue
+                    unit.moveQueue = [];
+                    updates.push({
+                        id: action.unitId,
+                        moveQueue: []
+                    });
+                    console.log("Whole thing is cleared");
+                } else {
+                    // Remove the last element count elements
+                    unit.moveQueue = unit.moveQueue.slice(0, unit.moveQueue.length - action.count);
+                    // No relevant update
+                    console.log("One is cleared");
+                }
             }
         } else {
             if(validity === "invalidtype") {
@@ -240,6 +274,26 @@ var Game = (function() {
                 } else if(validity === "invalidtile") {
                     // Resend the map
                     // For now, do nothing
+                }
+            } else if(action.type === "cancelqueue") {
+                if(validity === "invalidid") {
+                    // The unit is probably dead
+                    updates.push({
+                        id: action.unitId,
+                        remove: true
+                    });
+                } else if(validity === "wrongplayer") {
+                    // Tell them the correct player
+                    updates.push({
+                        id: action.unitId,
+                        player: this.unitById(action.unitId).player
+                    });
+                } else if(validity === "invalidunittype") {
+                    // Tell them the correct unit type
+                    updates.push({
+                        id: action.unitId,
+                        type: this.unitById(action.unitId).type
+                    });
                 }
             }
         }
