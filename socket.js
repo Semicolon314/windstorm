@@ -108,6 +108,8 @@ module.exports = function(server) {
         players.push(player);
         var joined = false; // Officially joined or not
         
+        socket.emit("playerid", player.id);
+        
         socket.on("requestname", function(name) {
             if(!joined) {
                 if(name === null) {

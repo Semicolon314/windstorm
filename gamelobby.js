@@ -24,10 +24,16 @@ GameLobby.prototype.serialize = function() {
     var i;
     
     for(i = 0; i < this.players.length; i++) {
-        players.push(this.players[i].name);
+        players.push({
+            id: this.players[i].id,
+            name: this.players[i].name
+        });
     }
     for(i = 0; i < this.spectators.length; i++) {
-        spectators.push(this.spectators[i].name);
+        spectators.push({
+            id: this.players[i].id,
+            name: this.spectators[i].name
+        });
     }
     
     return {

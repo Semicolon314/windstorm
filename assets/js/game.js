@@ -343,12 +343,23 @@ var Game = (function() {
                     this.units.push(unit);
                 }
                 
-                unit.row = update.row || unit.row;
-                unit.col = update.col || unit.col;
-                unit.type = update.type || unit.type;
-                unit.player = update.player || unit.player;
-                unit.lastMove = update.lastMove || unit.lastMove;
-                unit.moveQueue = update.moveQueue || unit.moveQueue;
+                if(update.remove) {
+                    this.removeUnit(update.id);
+                } else {
+                    unit.row = update.row || unit.row;
+                    unit.col = update.col || unit.col;
+                    unit.type = update.type || unit.type;
+                    unit.player = update.player || unit.player;
+                    unit.lastMove = update.lastMove || unit.lastMove;
+                    unit.moveQueue = update.moveQueue || unit.moveQueue;
+                    
+                    if(unit.moveQueue.length > 0) {
+                        if(unit.row === unit.moveQueue[0].row &&
+                                unit.col === unit.moveQueue[0].col) {
+                            unit.moveQueue = unit.moveQueue.slice(1);
+                        }
+                    }
+                }
             }
         }
     };

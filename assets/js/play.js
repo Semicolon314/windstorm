@@ -4,9 +4,10 @@ $(function() {
     var currentLobby = null;
     var game = null;
     var joinType = null; // "player" or "spectator"
-    var userName = "You";
+    var clientData = {};
     var currentView = "none";
     var lastFrame = null; // last frame for game animation
+    var selectedUnit = null;
 
     /* Socket.IO methods */
     var socket = io();
@@ -25,6 +26,10 @@ $(function() {
             // Request a name from the server
             socket.emit("requestname", null);
         }
+    });
+    
+    socket.on("playerid", function(id) {
+        clientData.id = id;
     });
     
     socket.on("name", function(name) {
@@ -156,7 +161,7 @@ $(function() {
                     if(args.length > 2) {
                         args = text.substring(1).split(" ", 3);
                         socket.emit("message", {to: args[1], text: args[2]});
-                        addMessage({tags: [{text: userName},{type: "info", text: "PM to " + args[1]}], text: args[2]});
+                        addMessage({tags: [{text: clientData.name},{type: "info", text: "PM to " + args[1]}], text: args[2]});
                     } else {
                         info("Usage: /msg [name] [message]");
                     }
@@ -166,12 +171,12 @@ $(function() {
             } else {
                 // Send the message as a message
                 socket.emit("message", {text: text});
-                plain(userName, text);
+                plain(clientData.name, text);
             }
         }
         
         function setName(name) {
-            userName = name;
+            clientData.name = name;
         }
         
         function createElement(message) {
@@ -213,11 +218,64 @@ $(function() {
         if(currentLobby === null) {
             return false;
         }
-        return currentLobby.leader === userName;
+        return currentLobby.leader === clientData.name;
     }
     
     function toggleJoinType() {
         socket.emit("togglejointype");
+    }
+    
+    // Given a pixel on the canvas, finds the corresponding tile on the map
+    function getMapTileByPixel(pixel) {
+        var canvas = $("#gameCanvas");
+        var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);
+        
+        return {
+            row: Math.floor((pixel.y - (canvas.height() - size * game.map.rows) / 2) / size),
+            col: Math.floor((pixel.x - (canvas.width() - size * game.map.cols) / 2) / size)
+        };
+    }
+    
+    function moveSelectedUnit(dir) {
+        if(selectedUnit !== null) {
+            var unit = game.unitById(selectedUnit);
+            
+            var unitPos = {row: unit.row, col: unit.col};
+            if(unit.moveQueue.length > 0) {
+                unitPos = unit.moveQueue[unit.moveQueue.length - 1];
+            }
+            console.log(unitPos);
+        
+            var dr = 0;
+            var dc = 0;
+            
+            if(dir === "left") {
+                dc = -1;
+            }
+            if(dir === "right") {
+                dc = 1;
+            }
+            if(dir === "up") {
+                dr = -1;
+            }
+            if(dir === "down") {
+                dr = 1;
+            }
+            
+            var target = {row: unitPos.row + dr, col: unitPos.col + dc};
+            
+            var action = {
+                type: "move",
+                unitId: unit.id,
+                target: target
+            };
+            
+            // Make sure the move is valid
+            if(game.validAction(action, clientData.id) === "valid") {
+                game.makeAction(action, clientData.id);
+                socket.emit("makeaction", action);
+            }
+        }
     }
     
     /* UI Input methods */
@@ -283,6 +341,36 @@ $(function() {
         
         if(k === 70 && e.shiftKey) { // Shift-F
             $(".game-holder").toggleClass("fullscreen");
+        }
+        
+        if(game && currentView === "Canvas") {
+            if(k === 65) { // A (left)
+                moveSelectedUnit("left");
+            } else if(k === 68) { // D (right)
+                moveSelectedUnit("right");
+            } else if(k === 83) { // S (down)
+                moveSelectedUnit("down");
+            } else if(k === 87) { // W (up)
+                moveSelectedUnit("up");
+            }
+        }
+    });
+    
+    $("#gameCanvas").mousemove(function(e) {
+        var offset = $(this).offset();
+    
+        var pixel = {
+            x: e.pageX - offset.left,
+            y: e.pageY - offset.top
+        };
+        
+        var tile = getMapTileByPixel(pixel);
+        
+        if(game.onMap(tile)) {
+            var unit = game.unitAt(tile);
+            if(unit !== null && unit.player === clientData.id) {
+                selectedUnit = unit.id;
+            }
         }
     });
     
@@ -395,9 +483,9 @@ $(function() {
         var pList = $("#lobbyPlayerList");
         pList.html("");
         
-        $.each(currentLobby.players, function(i, name) {
-            listItem = $("<li class=\"list-group-item\">" + name + "</li>");
-            if(name === currentLobby.leader) {
+        $.each(currentLobby.players, function(i, obj) {
+            listItem = $("<li class=\"list-group-item\">" + obj.name + "</li>");
+            if(obj.name === currentLobby.leader) {
                 listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
             } else if(isLeader()) {
                 listItem.append(makeLeaderButtons(name));
@@ -420,9 +508,9 @@ $(function() {
         var sList = $("#lobbySpectatorList");
         sList.html("");
         if(currentLobby.spectators.length > 0) {
-            $.each(currentLobby.spectators, function(i, name) {
-                listItem = $("<li class=\"list-group-item\">" + name + "</li>");
-                if(name === currentLobby.leader) {
+            $.each(currentLobby.spectators, function(i, obj) {
+                listItem = $("<li class=\"list-group-item\">" + obj.name + "</li>");
+                if(obj.name === currentLobby.leader) {
                     listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
                 } else if(isLeader()) {
                     listItem.append(makeLeaderButtons(name));
@@ -514,13 +602,37 @@ $(function() {
             var u = game.units[i];
             var color = game.playerColors[u.player];
             ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            
+            if(selectedUnit === u.id) {
+                ctx.strokeStyle = "#FFFF00";
+            }
             
             if(u.type === 1) { // Moving unit
                 ctx.beginPath();
                 ctx.arc(size * u.col + size / 2, size * u.row + size / 2, size / 3, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.stroke();
             } else if(u.type === 2) { // Base
                 ctx.fillRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3);
+                ctx.strokeRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3); 
+            }
+        }
+        
+        // Draw the selected unit's path
+        if(selectedUnit !== null) {
+            var unit = game.unitById(selectedUnit);
+            
+            if(unit.moveQueue.length > 0) {
+                ctx.fillStyle = "#FF0000";
+                
+                for(var i = 0; i < unit.moveQueue.length; i++) {
+                    var p = unit.moveQueue[i];
+                    
+                    ctx.beginPath();
+                    ctx.arc(size * p.col + size / 2, size * p.row + size / 2, size / 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
     }
