@@ -298,6 +298,40 @@ var Game = (function() {
             }
         }
         
+        // TEMPORARY AUTO-SPAWNING
+        if(this.step % 600 === 0) {
+            // Create new unit at each base
+            for(var i = 0; i < this.units.length; i++) {
+                unit = this.units[i];
+                if(unit.type === 2) {
+                    // Max 8 tries to spawn
+                    for(var j = 0; j < 8; j++) {
+                        // Choose a direction
+                        var dir = Math.floor(Math.random() * 4);
+                        var dc = dir % 2 === 0 ? dir - 1 : 0;
+                        var dr = dir % 2 === 1 ? dir - 2 : 0;
+                        
+                        var target = {row: unit.row + dr, col: unit.col + dc};
+                        
+                        // See if the direction is clear
+                        var targetUnit = this.unitAt(target);
+                        
+                        if(targetUnit === null) {
+                            var newUnit = new Game.Unit({
+                                row: target.row,
+                                col: target.col,
+                                player: unit.player
+                            });
+                            this.units.push(newUnit);
+                            updates.push(newUnit);
+                            
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         // Kill off dead units
         var deadList = [];
         for(i = 0; i < this.units.length; i++) {
@@ -338,7 +372,7 @@ var Game = (function() {
                 var unit = this.unitById(update.id);
                 
                 if(unit === null) {
-                    unit = new Game.Unit();
+                    unit = new Game.Unit(update);
                     unit.id = update.id;
                     this.units.push(unit);
                 }

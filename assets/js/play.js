@@ -244,7 +244,6 @@ $(function() {
             if(unit.moveQueue.length > 0) {
                 unitPos = unit.moveQueue[unit.moveQueue.length - 1];
             }
-            console.log(unitPos);
         
             var dr = 0;
             var dc = 0;
@@ -623,15 +622,19 @@ $(function() {
         if(selectedUnit !== null) {
             var unit = game.unitById(selectedUnit);
             
-            if(unit.moveQueue.length > 0) {
-                ctx.fillStyle = "#FF0000";
-                
-                for(var i = 0; i < unit.moveQueue.length; i++) {
-                    var p = unit.moveQueue[i];
+            if(unit === null) {
+                selectedUnit = null;
+            } else {
+                if(unit.moveQueue.length > 0) {
+                    ctx.fillStyle = "#FF0000";
                     
-                    ctx.beginPath();
-                    ctx.arc(size * p.col + size / 2, size * p.row + size / 2, size / 5, 0, Math.PI * 2);
-                    ctx.fill();
+                    for(var i = 0; i < unit.moveQueue.length; i++) {
+                        var p = unit.moveQueue[i];
+                        
+                        ctx.beginPath();
+                        ctx.arc(size * p.col + size / 2, size * p.row + size / 2, size / 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
             }
         }
