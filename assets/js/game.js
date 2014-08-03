@@ -265,13 +265,13 @@ var Game = (function() {
         this.step += 1;
         
         var updates = [];
-        var i, unit;
+        var i, j, unit, targetUnit;
         
         for(i = 0; i < this.units.length; i++) {
             unit = this.units[i];
             if(unit.moveQueue.length > 0 && this.step - unit.lastMove > Game.UNIT_COOLDOWN) {
                 // See if the target is an okay place to move
-                var targetUnit = this.unitAt(unit.moveQueue[0]);
+                targetUnit = this.unitAt(unit.moveQueue[0]);
                 if(targetUnit === null) {
                     unit.row = unit.moveQueue[0].row;
                     unit.col = unit.moveQueue[0].col;
@@ -301,11 +301,11 @@ var Game = (function() {
         // TEMPORARY AUTO-SPAWNING
         if(this.step % 600 === 0) {
             // Create new unit at each base
-            for(var i = 0; i < this.units.length; i++) {
+            for(i = 0; i < this.units.length; i++) {
                 unit = this.units[i];
                 if(unit.type === 2) {
                     // Max 8 tries to spawn
-                    for(var j = 0; j < 8; j++) {
+                    for(j = 0; j < 8; j++) {
                         // Choose a direction
                         var dir = Math.floor(Math.random() * 4);
                         var dc = dir % 2 === 0 ? dir - 1 : 0;
@@ -314,7 +314,7 @@ var Game = (function() {
                         var target = {row: unit.row + dr, col: unit.col + dc};
                         
                         // See if the direction is clear
-                        var targetUnit = this.unitAt(target);
+                        targetUnit = this.unitAt(target);
                         
                         if(targetUnit === null) {
                             var newUnit = new Game.Unit({
@@ -339,7 +339,7 @@ var Game = (function() {
             var adj = this.adjacentUnits(unit);
             
             var enemies = 0;
-            for(var j = 0; j < adj.length; j++) {
+            for(j = 0; j < adj.length; j++) {
                 if(adj[j].player !== unit.player) {
                     enemies += 1;
                 }

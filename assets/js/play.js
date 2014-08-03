@@ -559,8 +559,11 @@ $(function() {
         
         // Draw the map
         var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);
+        
         var mapImage = getMapImage(size);
+        drawSelectedPath(mapImage, size);
         drawUnits(mapImage, size);
+        
         ctx.drawImage(mapImage, (canvas.width() - size * game.map.cols) / 2, (canvas.height() - size * game.map.rows) / 2);
         
         // Do the next frame
@@ -593,10 +596,121 @@ $(function() {
         return canvas;
     }
     
+    function getTileCenter(tile, size) {
+        return {y: tile.row * size + size / 2, x: tile.col * size + size / 2};
+    }
+    
+    function drawSelectedPath(mapImage, size) {
+        var ctx = mapImage.getContext("2d");
+        
+        // Draw the selected unit's path
+        if(selectedUnit === null) {
+            return;
+        }
+        
+        var unit = game.unitById(selectedUnit);
+        
+        if(unit === null) {
+            selectedUnit = null;
+            return;
+        }
+        
+        if(unit.moveQueue.length > 0) {
+            var prevCenter, curCenter, nextCenter, prevMid, nextMid;
+            ctx.beginPath();
+            
+            for(i = -1; i < unit.moveQueue.length; i++) {
+                prevCenter = i === -1 ? null : (i === 0 ? getTileCenter(unit, size) :
+                        getTileCenter(unit.moveQueue[i - 1], size));
+                curCenter = i === -1 ? getTileCenter(unit, size) : 
+                        getTileCenter(unit.moveQueue[i], size);
+                nextCenter = i === unit.moveQueue.length - 1 ?
+                        null : getTileCenter(unit.moveQueue[i + 1], size);
+                        
+                if(prevCenter !== null) {
+                    prevMid = {x: (prevCenter.x + curCenter.x) / 2,
+                        y: (prevCenter.y + curCenter.y) / 2};
+                } else {
+                    prevMid = null;
+                }
+                if(nextCenter !== null) {
+                    nextMid = {x: (nextCenter.x + curCenter.x) / 2,
+                        y: (nextCenter.y + curCenter.y) / 2};
+                } else {
+                    nextMid = null;
+                }
+                        
+                if(prevCenter === null) {
+                    ctx.moveTo(curCenter.x, curCenter.y);
+                } else if(nextCenter === null) {
+                    ctx.lineTo(curCenter.x, curCenter.y);
+                } else {
+                    if(prevMid.x === nextMid.x || prevMid.y === nextMid.y) {
+                        ctx.lineTo(nextMid.x, nextMid.y);
+                    } else {
+                        var corner = {x: prevMid.x, y: nextMid.y};
+                        if(corner.x === curCenter.x && corner.y === curCenter.y) {
+                            corner = {x: nextMid.x, y: prevMid.y};
+                        }
+                        
+                        var startAngle = Math.atan2(prevMid.y - corner.y, prevMid.x - corner.x);
+                        var endAngle = Math.atan2(nextMid.y - corner.y, nextMid.x - corner.x);
+                        
+                        var ccw = startAngle - Math.PI / 2 === endAngle ||
+                                startAngle + Math.PI * 3 / 2 === endAngle;
+                        
+                        ctx.arc(corner.x, corner.y, size / 2, startAngle, endAngle, ccw);
+                        
+                        console.log("Arc from (" + prevMid.x + "," + prevMid.y + 
+                                ") to (" + nextMid.x + "," + nextMid.y + ")");
+                        
+                        ctx.moveTo(nextMid.x, nextMid.y);
+                    }
+                }
+            }
+            
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = size / 3 + 2;
+            ctx.stroke();
+            ctx.strokeStyle = "#FF0000";
+            ctx.lineWidth = size / 3;
+            ctx.stroke();
+            
+            // Draw the arrow head
+            var arrowTip = {
+                x: curCenter.x + (curCenter.x - prevCenter.x) / 3,
+                y: curCenter.y + (curCenter.y - prevCenter.y) / 3
+            };
+            var arrowBack = {
+                x: curCenter.x - (curCenter.x - prevCenter.x) / 3,
+                y: curCenter.y - (curCenter.y - prevCenter.y) / 3
+            };
+            var arrowLeft = {
+                x: arrowBack.x - (curCenter.y - prevCenter.y) / 3,
+                y: arrowBack.y - (curCenter.x - prevCenter.x) / 3
+            };
+            var arrowRight = {
+                x: arrowBack.x + (curCenter.y - prevCenter.y) / 3,
+                y: arrowBack.y + (curCenter.x - prevCenter.x) / 3
+            };
+            
+            ctx.beginPath();
+            ctx.moveTo(arrowTip.x, arrowTip.y);
+            ctx.lineTo(arrowLeft.x, arrowLeft.y);
+            ctx.lineTo(arrowRight.x, arrowRight.y);
+            ctx.lineTo(arrowTip.x, arrowTip.y);
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.fillStyle = "#FF0000";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fill();
+        }
+    }
+    
     // Draws units on top of a map image where size is the size of a tile
     function drawUnits(mapImage, size) {
         var ctx = mapImage.getContext("2d");
-    
+        
         for(var i = 0; i < game.units.length; i++) {
             var u = game.units[i];
             var color = game.playerColors[u.player];
@@ -607,35 +721,15 @@ $(function() {
                 ctx.strokeStyle = "#FFFF00";
             }
             
+            var pixel = getTileCenter(u, size);
             if(u.type === 1) { // Moving unit
                 ctx.beginPath();
-                ctx.arc(size * u.col + size / 2, size * u.row + size / 2, size / 3, 0, Math.PI * 2);
+                ctx.arc(pixel.x, pixel.y, size / 3, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
             } else if(u.type === 2) { // Base
-                ctx.fillRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3);
-                ctx.strokeRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3); 
-            }
-        }
-        
-        // Draw the selected unit's path
-        if(selectedUnit !== null) {
-            var unit = game.unitById(selectedUnit);
-            
-            if(unit === null) {
-                selectedUnit = null;
-            } else {
-                if(unit.moveQueue.length > 0) {
-                    ctx.fillStyle = "#FF0000";
-                    
-                    for(var i = 0; i < unit.moveQueue.length; i++) {
-                        var p = unit.moveQueue[i];
-                        
-                        ctx.beginPath();
-                        ctx.arc(size * p.col + size / 2, size * p.row + size / 2, size / 5, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
+                ctx.fillRect(pixel.x - size / 3, pixel.y - size / 3, size * 2 / 3, size * 2 / 3);
+                ctx.strokeRect(pixel.x - size / 3, pixel.y - size / 3, size * 2 / 3, size * 2 / 3);
             }
         }
     }
