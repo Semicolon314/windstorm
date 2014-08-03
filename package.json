@@ -26,7 +26,8 @@
     "socket.io": "^1.0.6",
     "express": "^4.5.1",
     "ejs": "^1.0.0",
-    "node-html-encoder": "0.0.2"
+    "node-html-encoder": "0.0.2",
+    "moniker": "^0.1.2"
   },
   "jshintConfig": {
     "bitwise": true,
@@ -44,12 +45,12 @@
     "unused": true,
     "debug": true,
     "multistr": true,
-    
     "browser": true,
     "jquery": true,
     "node": true,
     "globals": {
-        "io": true
+      "io": true,
+      "Game": true
     }
   }
 }

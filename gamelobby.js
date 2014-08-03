@@ -1,5 +1,8 @@
 var idCounter = 0;
 
+var Game = require("./assets/js/game");
+var Maps = require("./maps");
+
 function GameLobby(io, options) {
     this.id = ++idCounter;
     
@@ -21,10 +24,16 @@ GameLobby.prototype.serialize = function() {
     var i;
     
     for(i = 0; i < this.players.length; i++) {
-        players.push(this.players[i].name);
+        players.push({
+            id: this.players[i].id,
+            name: this.players[i].name
+        });
     }
     for(i = 0; i < this.spectators.length; i++) {
-        spectators.push(this.spectators[i].name);
+        spectators.push({
+            id: this.players[i].id,
+            name: this.spectators[i].name
+        });
     }
     
     return {
@@ -41,6 +50,10 @@ GameLobby.prototype.serialize = function() {
 
 GameLobby.prototype.sendUpdate = function() {
     this.io.emit("gamelist", [this.serialize()]);
+};
+
+GameLobby.prototype.gameFullUpdate = function() {
+    this.io.to("game" + this.id).emit("fullgame", this.game.serialize());
 };
 
 GameLobby.prototype.deleteSelf = function() {
@@ -94,6 +107,11 @@ GameLobby.prototype.addPlayer = function(player, spec) {
         id: this.id,
         joinType: joinType
     });
+    
+    // Send the new player a full game update if the game is started
+    if(this.started) {
+        player.socket.emit("fullgame", this.game.serialize());
+    }
     
     return joinType;
 };
@@ -165,6 +183,36 @@ GameLobby.prototype.toggleJoinType = function(player) {
             return;
         }
     }
+};
+
+// Starts the game
+GameLobby.prototype.startGame = function() {
+    this.game = new Game();
+    
+    // Select the map
+    if(this.map === "random") {
+        this.map = Maps.random();
+    }
+    var mapObj = Maps.get(this.map);
+    
+    var playerList = [];
+    this.players.forEach(function(player) {
+        playerList.push(player.id);
+    });
+    
+    this.game.setup(mapObj, playerList);
+    
+    this.started = true;
+    
+    this.sendUpdate();
+    this.gameFullUpdate();
+};
+
+// Does a step in the game
+GameLobby.prototype.doGameStep = function() {
+    var updateData = this.game.doStep();
+
+    this.io.to("game" + this.id).emit("gameupdate", updateData);
 };
 
 /* jshint ignore: start */

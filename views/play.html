@@ -1,6 +1,6 @@
 <% include header.html %>
 
-<div class="game-holder container">
+<div class="game-holder container" id="gameHolder">
     <div class="game-view" id="gameViewList">
         <h1>Game List</h1>
         <hr>
@@ -94,11 +94,18 @@
     </div>
 </div>
 
+<div class="game-view container game-holder" id="gameViewCanvas">
+    <canvas id="gameCanvas">
+        Your browser does not support canvas.
+    </canvas>
+</div>
+
 <div class="message-holder">
     <div><div id="messages"></div></div>
     <input type="text" id="messageBox">
 </div>
 
 <% include footer.html %>
+<script src="/assets/js/game.js"></script>
 <script src="/assets/js/play.js"></script>
 <% include final.html %>

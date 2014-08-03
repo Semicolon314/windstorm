@@ -1,13 +1,16 @@
 var Player = require("./player");
 var GameLobby = require("./gamelobby");
+var Game = require("./assets/js/game");
 var encoder = new require("node-html-encoder").Encoder("entity");
+var ticker = require("./ticker");
 
 module.exports = function(server) {
-    var io = require("socket.io").listen(server, {log: false});
+    var io = require("socket.io").listen(server);
     
     /* Global variables */
     var players = [];
     var gameList = []; // Actually game lobbies
+    var gameTicker = null;
     
     /* Global methods */
     // Checks whether the given name is valid and unused
@@ -104,6 +107,8 @@ module.exports = function(server) {
         var player = new Player(socket);
         players.push(player);
         var joined = false; // Officially joined or not
+        
+        socket.emit("playerid", player.id);
         
         socket.on("requestname", function(name) {
             if(!joined) {
@@ -229,6 +234,20 @@ module.exports = function(server) {
             }
         });
         
+        socket.on("startgame", function() {
+            if(player.gameLobby !== null && player.gameLobby.leader.name === player.name) {
+                player.gameLobby.startGame();
+            }
+        });
+        
+        socket.on("makeaction", function(action) {
+            if(player.gameLobby !== null && player.gameLobby.started) {
+                var updateData = player.gameLobby.game.makeAction(action, player.id);
+                
+                socket.emit("gameupdate", updateData);
+            }
+        });
+        
         socket.on("ping", function(id) {
             // Relay ping
             socket.emit("ping", id);
@@ -250,4 +269,13 @@ module.exports = function(server) {
             );
         });
     });
+    
+    // Set up game ticker
+    gameTicker = ticker(function() {
+        gameList.forEach(function(gameLobby) {
+            if(gameLobby.started) {
+                gameLobby.doGameStep();
+            }
+        });
+    }, 1000 / Game.STEPS_PER_SECOND);
 };

@@ -2,8 +2,12 @@ $(function() {
     /* Global variables */
     var gameList = [];
     var currentLobby = null;
+    var game = null;
     var joinType = null; // "player" or "spectator"
-    var userName = "You";
+    var clientData = {};
+    var currentView = "none";
+    var lastFrame = null; // last frame for game animation
+    var selectedUnit = null;
 
     /* Socket.IO methods */
     var socket = io();
@@ -22,6 +26,10 @@ $(function() {
             // Request a name from the server
             socket.emit("requestname", null);
         }
+    });
+    
+    socket.on("playerid", function(id) {
+        clientData.id = id;
     });
     
     socket.on("name", function(name) {
@@ -54,8 +62,6 @@ $(function() {
                     return false;
                 }
             });
-            
-            console.log(data.id + " is in list at " + inGameList);
             
             if(inGameList !== -1) {
                 if(!data.remove) {
@@ -94,6 +100,16 @@ $(function() {
     socket.on("leavegame", function() {
         currentLobby = null;
         setGameView("List");
+    });
+    
+    socket.on("fullgame", function(data) {
+        game = new Game();
+        game.load(data);
+        setGameView("Canvas");
+    });
+    
+    socket.on("gameupdate", function(data) {
+        game.applyUpdate(data);
     });
     
     function ping() {
@@ -145,7 +161,7 @@ $(function() {
                     if(args.length > 2) {
                         args = text.substring(1).split(" ", 3);
                         socket.emit("message", {to: args[1], text: args[2]});
-                        addMessage({tags: [{text: userName},{type: "info", text: "PM to " + args[1]}], text: args[2]});
+                        addMessage({tags: [{text: clientData.name},{type: "info", text: "PM to " + args[1]}], text: args[2]});
                     } else {
                         info("Usage: /msg [name] [message]");
                     }
@@ -155,12 +171,12 @@ $(function() {
             } else {
                 // Send the message as a message
                 socket.emit("message", {text: text});
-                plain(userName, text);
+                plain(clientData.name, text);
             }
         }
         
         function setName(name) {
-            userName = name;
+            clientData.name = name;
         }
         
         function createElement(message) {
@@ -202,12 +218,68 @@ $(function() {
         if(currentLobby === null) {
             return false;
         }
-        return currentLobby.leader === userName;
+        return currentLobby.leader === clientData.name;
+    }
+    
+    function toggleJoinType() {
+        socket.emit("togglejointype");
+    }
+    
+    // Given a pixel on the canvas, finds the corresponding tile on the map
+    function getMapTileByPixel(pixel) {
+        var canvas = $("#gameCanvas");
+        var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);
+        
+        return {
+            row: Math.floor((pixel.y - (canvas.height() - size * game.map.rows) / 2) / size),
+            col: Math.floor((pixel.x - (canvas.width() - size * game.map.cols) / 2) / size)
+        };
+    }
+    
+    function moveSelectedUnit(dir) {
+        if(selectedUnit !== null) {
+            var unit = game.unitById(selectedUnit);
+            
+            var unitPos = {row: unit.row, col: unit.col};
+            if(unit.moveQueue.length > 0) {
+                unitPos = unit.moveQueue[unit.moveQueue.length - 1];
+            }
+        
+            var dr = 0;
+            var dc = 0;
+            
+            if(dir === "left") {
+                dc = -1;
+            }
+            if(dir === "right") {
+                dc = 1;
+            }
+            if(dir === "up") {
+                dr = -1;
+            }
+            if(dir === "down") {
+                dr = 1;
+            }
+            
+            var target = {row: unitPos.row + dr, col: unitPos.col + dc};
+            
+            var action = {
+                type: "move",
+                unitId: unit.id,
+                target: target
+            };
+            
+            // Make sure the move is valid
+            if(game.validAction(action, clientData.id) === "valid") {
+                game.makeAction(action, clientData.id);
+                socket.emit("makeaction", action);
+            }
+        }
     }
     
     /* UI Input methods */
     $("#messageBox").keydown(function(e) {
-        var k = e.keyCode ? e.keyCode : e.charCode;
+        var k = e.which;
         
         if(k === 13) { // Enter
             // Ensure the message isn't empty
@@ -259,20 +331,75 @@ $(function() {
         socket.emit("creategame", {name: gameName, map: gameMap, playerCount: playerCount});
     });
     
-    function toggleJoinType() {
-        socket.emit("togglejointype");
-    }
+    $("#startGameButton").click(function() {
+        socket.emit("startgame");
+    });
+    
+    $(document).keydown(function(e) {
+        var k = e.which;
+        
+        if(k === 70 && e.shiftKey) { // Shift-F
+            $(".game-holder").toggleClass("fullscreen");
+        }
+        
+        if(game && currentView === "Canvas") {
+            if(k === 65) { // A (left)
+                moveSelectedUnit("left");
+            } else if(k === 68) { // D (right)
+                moveSelectedUnit("right");
+            } else if(k === 83) { // S (down)
+                moveSelectedUnit("down");
+            } else if(k === 87) { // W (up)
+                moveSelectedUnit("up");
+            }
+        }
+    });
+    
+    $("#gameCanvas").mousemove(function(e) {
+        var offset = $(this).offset();
+    
+        var pixel = {
+            x: e.pageX - offset.left,
+            y: e.pageY - offset.top
+        };
+        
+        var tile = getMapTileByPixel(pixel);
+        
+        if(game.onMap(tile)) {
+            var unit = game.unitAt(tile);
+            if(unit !== null && unit.player === clientData.id) {
+                selectedUnit = unit.id;
+            }
+        }
+    });
     
     /* UI Update methods */
     // Sets the current game view
     function setGameView(view) {
+        if(currentView === view) {
+            return;
+        }
+        
+        currentView = view;
+        
         $(".game-view").hide();
         
         $("#gameView" + view).show();
+        
+        if(view === "Canvas") {
+            // Hide the game-holder
+            $("#gameHolder").hide();
+            
+            // Start the rendering loop
+            window.requestAnimationFrame(renderGame);
+        } else {
+            // Show the game-holder
+            $("#gameHolder").show();
+        }
     }
     
     // Makes a Join/Spectate button for the game list for the given game id
-    function makeGameListButton(id) {
+    function makeGameListButton(id, onlySpectate) {
         var buttonDiv = $("<div class=\"btn-group btn-group-justified\"></div>");
         var joinButtonGroup = $("<div class=\"btn-group\"><button type=\"button\" class=\"btn btn-default\">Join</button></div>");
         var specButtonGroup = $("<div class=\"btn-group\"><button type=\"button\" class=\"btn btn-default\">Spectate</button></div>");
@@ -285,6 +412,10 @@ $(function() {
         
         joinButton.attr("action", "join");
         specButton.attr("action", "spectate");
+        
+        if(onlySpectate) {
+            joinButton.prop("disabled", true);
+        }
         
         buttonDiv.append(joinButtonGroup);
         buttonDiv.append(specButtonGroup);
@@ -311,7 +442,7 @@ $(function() {
             
             // Button column
             var buttonCol = $("<td></td>");
-            buttonCol.append(makeGameListButton(game.id));
+            buttonCol.append(makeGameListButton(game.id, game.started));
             row.append(buttonCol);
             
             // Game name column
@@ -351,9 +482,9 @@ $(function() {
         var pList = $("#lobbyPlayerList");
         pList.html("");
         
-        $.each(currentLobby.players, function(i, name) {
-            listItem = $("<li class=\"list-group-item\">" + name + "</li>");
-            if(name === currentLobby.leader) {
+        $.each(currentLobby.players, function(i, obj) {
+            listItem = $("<li class=\"list-group-item\">" + obj.name + "</li>");
+            if(obj.name === currentLobby.leader) {
                 listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
             } else if(isLeader()) {
                 listItem.append(makeLeaderButtons(name));
@@ -376,9 +507,9 @@ $(function() {
         var sList = $("#lobbySpectatorList");
         sList.html("");
         if(currentLobby.spectators.length > 0) {
-            $.each(currentLobby.spectators, function(i, name) {
-                listItem = $("<li class=\"list-group-item\">" + name + "</li>");
-                if(name === currentLobby.leader) {
+            $.each(currentLobby.spectators, function(i, obj) {
+                listItem = $("<li class=\"list-group-item\">" + obj.name + "</li>");
+                if(obj.name === currentLobby.leader) {
                     listItem.append("<span class=\"label label-primary pull-right\">Leader</span>");
                 } else if(isLeader()) {
                     listItem.append(makeLeaderButtons(name));
@@ -400,5 +531,112 @@ $(function() {
             
         // Add listeners for player kicking and leader-ing
         $("[player-target] button").click(lobbyPlayerButtonClick);
+    }
+    
+    function renderGame(timestamp) {
+        // Timestamp stuff not needed for actual game mechanics
+        // Will possibly be used for timestamp
+        if(lastFrame === null) {
+            lastFrame = timestamp;
+        }
+        var delta = timestamp - lastFrame;
+        lastFrame = timestamp;
+        
+        // Get the canvas and context
+        var canvas = $("#gameCanvas");
+        canvas[0].width = canvas.parent().width(); // Ensure element size matches style size
+        canvas[0].height = canvas.parent().height();
+        var ctx = canvas[0].getContext("2d");
+        
+        // Clear the canvas
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width(), canvas.height());
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText("FPS: " + Math.round(1000 / delta / 10) * 10, 20, 20);
+        
+        ctx.fillText("Step: " + game.step, 20, 50);
+        
+        // Draw the map
+        var size = Math.min(canvas.width() / game.map.cols, canvas.height() / game.map.rows);
+        var mapImage = getMapImage(size);
+        drawUnits(mapImage, size);
+        ctx.drawImage(mapImage, (canvas.width() - size * game.map.cols) / 2, (canvas.height() - size * game.map.rows) / 2);
+        
+        // Do the next frame
+        if(currentView === "Canvas") {
+            window.requestAnimationFrame(renderGame);
+        }
+    }
+    
+    // Returns an image of the map where size is the size of a tile
+    function getMapImage(size) {
+        var map = game.map;
+        var canvas = document.createElement("canvas");
+        canvas.width = map.cols * size;
+        canvas.height = map.rows * size;
+        var ctx = canvas.getContext("2d");
+        
+        ctx.strokeStyle = "#222222";
+        for(var r = 0; r < map.rows; r++) {
+            for(var c = 0; c < map.cols; c++) {
+                if(map.data[r][c] === 0) { // Wall
+                    ctx.fillStyle = "#222222";
+                } else if(map.data[r][c] === 1) { // Floor
+                    ctx.fillStyle = "#DDDDDD";
+                }
+                ctx.fillRect(c * size, r * size, size, size);
+                ctx.strokeRect(c * size, r * size, size, size);
+            }
+        }
+        
+        return canvas;
+    }
+    
+    // Draws units on top of a map image where size is the size of a tile
+    function drawUnits(mapImage, size) {
+        var ctx = mapImage.getContext("2d");
+    
+        for(var i = 0; i < game.units.length; i++) {
+            var u = game.units[i];
+            var color = game.playerColors[u.player];
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            
+            if(selectedUnit === u.id) {
+                ctx.strokeStyle = "#FFFF00";
+            }
+            
+            if(u.type === 1) { // Moving unit
+                ctx.beginPath();
+                ctx.arc(size * u.col + size / 2, size * u.row + size / 2, size / 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } else if(u.type === 2) { // Base
+                ctx.fillRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3);
+                ctx.strokeRect(size * u.col + size / 6, size * u.row + size / 6, size * 2 / 3, size * 2 / 3); 
+            }
+        }
+        
+        // Draw the selected unit's path
+        if(selectedUnit !== null) {
+            var unit = game.unitById(selectedUnit);
+            
+            if(unit === null) {
+                selectedUnit = null;
+            } else {
+                if(unit.moveQueue.length > 0) {
+                    ctx.fillStyle = "#FF0000";
+                    
+                    for(var i = 0; i < unit.moveQueue.length; i++) {
+                        var p = unit.moveQueue[i];
+                        
+                        ctx.beginPath();
+                        ctx.arc(size * p.col + size / 2, size * p.row + size / 2, size / 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
     }
 });
